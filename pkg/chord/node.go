@@ -5,13 +5,18 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+
+	// "net"
 	"sync"
 
 	"github.com/gammazero/deque"
 	pb "github.com/raudel25/social-network-distributed-system/pkg/chord/grpc"
+	"google.golang.org/grpc"
 )
 
 type Node struct {
+	pb.UnimplementedChordServer
+
 	id      *big.Int
 	address string
 
@@ -29,12 +34,10 @@ type Node struct {
 	dictLock   sync.RWMutex
 
 	shutdown chan struct{}
-
-	pb.UnimplementedChordServer
 }
 
-func NewNode(address string, config *Configuration, storage *Storage) *Node {
-	return &Node{id: hashID(address), address: address, predecessor: nil, successors: &deque.Deque[*Node]{},
+func NewNode(config *Configuration, storage *Storage) *Node {
+	return &Node{predecessor: nil, successors: &deque.Deque[*Node]{},
 		fingerTable: NewFingerTable(config.HashSize), dictionary: storage, config: config}
 }
 
@@ -52,7 +55,7 @@ func (n *Node) FindSuccessor(ctx context.Context, req *pb.IdRequest) (*pb.Addres
 	}, nil
 }
 
-func (n *Node) GetPredecessor(ctx context.Context, req *pb.AddressRequest) (*pb.AddressResponse, error) {
+func (n *Node) GetPredecessor(ctx context.Context, req *pb.EmptyRequest) (*pb.AddressResponse, error) {
 	predecessor := n.getPredecessorProp()
 
 	if predecessor == nil {
@@ -115,8 +118,20 @@ func (n *Node) Join(address string) error {
 	return nil
 }
 
-func (n *Node) Start() {
+func (n *Node) Start(port string) {
+	// n.address = fmt.Sprintf("%s:%s", getOutboundIP().String(), port)
+	n.address = fmt.Sprintf("%s:%s", "localhost", port)
+	n.id = hashID(n.address)
+
 	log.Printf("Starting chord server %s\n", n.address)
 
+	s := grpc.NewServer()
+	pb.RegisterChordServer(s, n)
+
+	log.Printf("Chord server is running %s\n", n.address)
+
+	n.createRingOrJoin()
+
+	go n.threadListen(s)
 	go n.threadStabilize()
 }

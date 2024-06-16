@@ -75,3 +75,20 @@ func (n *Node) stabilize() {
 
 	log.Println("Node stabilized")
 }
+
+func (n *Node) createRing() {
+	n.successorsPushBack(n)
+	n.setPredecessorProp(n)
+}
+
+func (n *Node) createRingOrJoin() {
+	if n.config.JoinAddress != "" {
+		err := n.Join(n.config.JoinAddress)
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+		return
+	}
+
+	n.createRing()
+}

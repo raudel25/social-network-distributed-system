@@ -19,7 +19,6 @@ import (
 const _ = grpc.SupportPackageIsVersion8
 
 const (
-	Chord_Join_FullMethodName             = "/chord.Chord/Join"
 	Chord_FindSuccessor_FullMethodName    = "/chord.Chord/FindSuccessor"
 	Chord_GetPredecessor_FullMethodName   = "/chord.Chord/GetPredecessor"
 	Chord_Notify_FullMethodName           = "/chord.Chord/Notify"
@@ -30,11 +29,10 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ChordClient interface {
-	Join(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 	FindSuccessor(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*AddressResponse, error)
 	GetPredecessor(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*AddressResponse, error)
 	Notify(ctx context.Context, in *AddressRequest, opts ...grpc.CallOption) (*StatusResponse, error)
-	CheckPredecessor(ctx context.Context, in *AddressRequest, opts ...grpc.CallOption) (*StatusResponse, error)
+	CheckPredecessor(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 }
 
 type chordClient struct {
@@ -43,16 +41,6 @@ type chordClient struct {
 
 func NewChordClient(cc grpc.ClientConnInterface) ChordClient {
 	return &chordClient{cc}
-}
-
-func (c *chordClient) Join(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(StatusResponse)
-	err := c.cc.Invoke(ctx, Chord_Join_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *chordClient) FindSuccessor(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*AddressResponse, error) {
@@ -85,7 +73,7 @@ func (c *chordClient) Notify(ctx context.Context, in *AddressRequest, opts ...gr
 	return out, nil
 }
 
-func (c *chordClient) CheckPredecessor(ctx context.Context, in *AddressRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
+func (c *chordClient) CheckPredecessor(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(StatusResponse)
 	err := c.cc.Invoke(ctx, Chord_CheckPredecessor_FullMethodName, in, out, cOpts...)
@@ -99,11 +87,10 @@ func (c *chordClient) CheckPredecessor(ctx context.Context, in *AddressRequest, 
 // All implementations must embed UnimplementedChordServer
 // for forward compatibility
 type ChordServer interface {
-	Join(context.Context, *IdRequest) (*StatusResponse, error)
 	FindSuccessor(context.Context, *IdRequest) (*AddressResponse, error)
 	GetPredecessor(context.Context, *EmptyRequest) (*AddressResponse, error)
 	Notify(context.Context, *AddressRequest) (*StatusResponse, error)
-	CheckPredecessor(context.Context, *AddressRequest) (*StatusResponse, error)
+	CheckPredecessor(context.Context, *EmptyRequest) (*StatusResponse, error)
 	mustEmbedUnimplementedChordServer()
 }
 
@@ -111,9 +98,6 @@ type ChordServer interface {
 type UnimplementedChordServer struct {
 }
 
-func (UnimplementedChordServer) Join(context.Context, *IdRequest) (*StatusResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Join not implemented")
-}
 func (UnimplementedChordServer) FindSuccessor(context.Context, *IdRequest) (*AddressResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FindSuccessor not implemented")
 }
@@ -123,7 +107,7 @@ func (UnimplementedChordServer) GetPredecessor(context.Context, *EmptyRequest) (
 func (UnimplementedChordServer) Notify(context.Context, *AddressRequest) (*StatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Notify not implemented")
 }
-func (UnimplementedChordServer) CheckPredecessor(context.Context, *AddressRequest) (*StatusResponse, error) {
+func (UnimplementedChordServer) CheckPredecessor(context.Context, *EmptyRequest) (*StatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckPredecessor not implemented")
 }
 func (UnimplementedChordServer) mustEmbedUnimplementedChordServer() {}
@@ -137,24 +121,6 @@ type UnsafeChordServer interface {
 
 func RegisterChordServer(s grpc.ServiceRegistrar, srv ChordServer) {
 	s.RegisterService(&Chord_ServiceDesc, srv)
-}
-
-func _Chord_Join_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(IdRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ChordServer).Join(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Chord_Join_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChordServer).Join(ctx, req.(*IdRequest))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _Chord_FindSuccessor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -212,7 +178,7 @@ func _Chord_Notify_Handler(srv interface{}, ctx context.Context, dec func(interf
 }
 
 func _Chord_CheckPredecessor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddressRequest)
+	in := new(EmptyRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -224,7 +190,7 @@ func _Chord_CheckPredecessor_Handler(srv interface{}, ctx context.Context, dec f
 		FullMethod: Chord_CheckPredecessor_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChordServer).CheckPredecessor(ctx, req.(*AddressRequest))
+		return srv.(ChordServer).CheckPredecessor(ctx, req.(*EmptyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -236,10 +202,6 @@ var Chord_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "chord.Chord",
 	HandlerType: (*ChordServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "Join",
-			Handler:    _Chord_Join_Handler,
-		},
 		{
 			MethodName: "FindSuccessor",
 			Handler:    _Chord_FindSuccessor_Handler,

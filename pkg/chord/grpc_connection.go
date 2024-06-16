@@ -16,8 +16,8 @@ type GRPCConnection struct {
 }
 
 func NewGRPConnection(address string) (*GRPCConnection, error) {
-	log.Printf("Connect to %s\n", address)
-	
+	log.Printf("Connecting to %s\n", address)
+
 	conn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
 		return nil, err

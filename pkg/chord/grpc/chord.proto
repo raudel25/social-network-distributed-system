@@ -9,7 +9,7 @@ service Chord {
   rpc FindSuccessor (IdRequest) returns (AddressResponse);
   rpc GetPredecessor (EmptyRequest) returns (AddressResponse);
   rpc Notify (AddressRequest) returns (StatusResponse);
-  rpc CheckPredecessor (AddressRequest) returns (StatusResponse);
+  rpc CheckPredecessor (EmptyRequest) returns (StatusResponse);
 }
 
 message IdRequest {

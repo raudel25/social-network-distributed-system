@@ -2,7 +2,9 @@ package chord
 
 import (
 	"crypto/sha1"
+	"log"
 	"math/big"
+	"net"
 )
 
 func hashID(key string) *big.Int {
@@ -17,4 +19,22 @@ func between(id, start, end *big.Int) bool {
 	} else {
 		return id.Cmp(start) > 0 || id.Cmp(end) < 0
 	}
+}
+
+func getOutboundIP() net.IP {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	defer func(conn net.Conn) {
+		err := conn.Close()
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}(conn)
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+
+	return localAddr.IP
 }
