@@ -19,10 +19,10 @@ func (n *Node) findSuccessor(id *big.Int) (*Node, error) {
 	}
 
 	connection, err := NewGRPConnection(n.address)
-	defer connection.close()
 	if err != nil {
 		return nil, err
 	}
+	defer connection.close()
 
 	res, err := connection.client.FindSuccessor(connection.ctx, &pb.IdRequest{Id: id.String()})
 	if err != nil {
@@ -34,10 +34,10 @@ func (n *Node) findSuccessor(id *big.Int) (*Node, error) {
 
 func (n *Node) getPredecessor(address string) (*Node, error) {
 	connection, err := NewGRPConnection(address)
-	defer connection.close()
 	if err != nil {
 		return nil, err
 	}
+	defer connection.close()
 
 	log.Printf("Find predecessor for %s", address)
 	res, err := connection.client.GetPredecessor(connection.ctx, &pb.EmptyRequest{})
@@ -48,17 +48,16 @@ func (n *Node) getPredecessor(address string) (*Node, error) {
 	return &Node{id: hashID(res.Address), address: res.Address}, nil
 }
 
-func (n *Node) notify(address string) error {
+func (n *Node) notify(address string) {
 	connection, err := NewGRPConnection(address)
-	defer connection.close()
 	if err != nil {
-		return err
+		log.Println(err.Error())
+		return
 	}
+	defer connection.close()
 
 	log.Printf("Notify to %s\n", address)
 	connection.client.Notify(connection.ctx, &pb.AddressRequest{Address: n.address})
-
-	return nil
 }
 
 func (n *Node) stabilize() {
@@ -66,14 +65,75 @@ func (n *Node) stabilize() {
 
 	successor := n.successorsFront()
 	pred, err := n.getPredecessor(successor.address)
-
-	if err == nil && between(pred.id, n.id, successor.id) {
-		n.successorsPushFront(pred)
+	if err != nil {
+		log.Println(err.Error())
+		return
 	}
 
-	n.notify(n.successorsFront().address)
+	if between(pred.id, n.id, successor.id) {
+		n.successorsPushFront(pred)
+		n.notify(pred.address)
+	} else {
+		if n.address != successor.address {
+			n.notify(successor.address)
+		}
+	}
 
 	log.Println("Node stabilized")
+}
+
+func (n *Node) checkSuccessor() {
+	successor := n.successorsFront()
+
+	if successor.address == n.address {
+		return
+	}
+
+	log.Printf("Check successor %s\n", successor.address)
+
+	connection, err := NewGRPConnection(successor.address)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	defer connection.close()
+
+	_, err = connection.client.Ping(connection.ctx, &pb.EmptyRequest{})
+	if err == nil {
+		return
+	}
+
+	log.Printf("Successor %s has failed\n", successor.address)
+
+	n.successorsPopFront()
+	if n.successorsLen() == 0 {
+		n.successors.PushBack(n)
+	}
+}
+
+func (n *Node) checkPredecessor() {
+	predecessor := n.getPredecessorProp()
+
+	if predecessor.address == n.address {
+		return
+	}
+
+	log.Printf("Check predecessor %s\n", predecessor.address)
+
+	connection, err := NewGRPConnection(predecessor.address)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	defer connection.close()
+
+	_, err = connection.client.Ping(connection.ctx, &pb.EmptyRequest{})
+	if err == nil {
+		return
+	}
+
+	log.Printf("Predecessor %s has failed\n", predecessor.address)
+	n.setPredecessorProp(n)
 }
 
 func (n *Node) createRing() {
@@ -85,7 +145,7 @@ func (n *Node) createRingOrJoin() {
 	if n.config.JoinAddress != "" {
 		err := n.Join(n.config.JoinAddress)
 		if err != nil {
-			log.Fatalln(err.Error())
+			log.Println(err.Error())
 		}
 		return
 	}

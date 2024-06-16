@@ -23,7 +23,39 @@ func (n *Node) threadStabilize() {
 	}
 }
 
+func (n *Node) threadCheckPredecessor() {
+	log.Println("Check predecessor thread started")
+
+	ticker := time.NewTicker(1 * time.Second)
+	for {
+		select {
+		case <-n.shutdown:
+			ticker.Stop()
+			return
+		case <-ticker.C:
+			n.checkPredecessor()
+		}
+	}
+}
+
+func (n *Node) threadCheckSuccessor() {
+	log.Println("Check successor thread started")
+
+	ticker := time.NewTicker(1 * time.Second)
+	for {
+		select {
+		case <-n.shutdown:
+			ticker.Stop()
+			return
+		case <-ticker.C:
+			n.checkSuccessor()
+		}
+	}
+}
+
 func (n *Node) threadListen(s *grpc.Server) {
+	log.Println("Listen thread started")
+
 	lis, err := net.Listen("tcp", n.address)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)

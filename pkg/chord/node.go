@@ -67,6 +67,18 @@ func (n *Node) GetPredecessor(ctx context.Context, req *pb.EmptyRequest) (*pb.Ad
 	}, nil
 }
 
+func (n *Node) GetSuccessor(ctx context.Context, req *pb.EmptyRequest) (*pb.AddressResponse, error) {
+	successor := n.successorsFront()
+
+	if successor == nil {
+		return nil, fmt.Errorf("not found successor")
+	}
+
+	return &pb.AddressResponse{
+		Address: successor.address,
+	}, nil
+}
+
 func (n *Node) Notify(ctx context.Context, req *pb.AddressRequest) (*pb.StatusResponse, error) {
 	newNode := &Node{
 		id:      hashID(req.Address),
@@ -82,13 +94,7 @@ func (n *Node) Notify(ctx context.Context, req *pb.AddressRequest) (*pb.StatusRe
 	return &pb.StatusResponse{Ok: true}, nil
 }
 
-func (n *Node) CheckPredecessor(ctx context.Context, req *pb.EmptyRequest) (*pb.StatusResponse, error) {
-	predecessor := n.getPredecessorProp()
-
-	if predecessor == nil {
-		return &pb.StatusResponse{Ok: false}, nil
-	}
-
+func (n *Node) Ping(ctx context.Context, req *pb.EmptyRequest) (*pb.StatusResponse, error) {
 	return &pb.StatusResponse{Ok: true}, nil
 }
 
@@ -98,10 +104,10 @@ func (n *Node) Join(address string) error {
 	newNode := &Node{id: hashID(address), address: address}
 
 	connection, err := NewGRPConnection(address)
-	defer connection.close()
 	if err != nil {
 		return err
 	}
+	defer connection.close()
 
 	res, err := connection.client.FindSuccessor(connection.ctx, &pb.IdRequest{Id: hashID(address).String()})
 	if err != nil {
@@ -114,6 +120,7 @@ func (n *Node) Join(address string) error {
 
 	n.successorsPushFront(newNode)
 	n.notify(address)
+	n.setPredecessorProp(n)
 
 	return nil
 }
@@ -134,4 +141,6 @@ func (n *Node) Start(port string) {
 
 	go n.threadListen(s)
 	go n.threadStabilize()
+	go n.threadCheckPredecessor()
+	go n.threadCheckSuccessor()
 }

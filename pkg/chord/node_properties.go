@@ -55,3 +55,10 @@ func (n *Node) successorsBack() *Node {
 
 	return n.successors.Back()
 }
+
+func (n *Node) successorsLen() int {
+	n.sucLock.Lock()
+	defer n.sucLock.Unlock()
+
+	return n.successors.Len()
+}
