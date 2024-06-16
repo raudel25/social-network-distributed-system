@@ -1,50 +1,30 @@
 package chord
 
 import (
-	"context"
 	"log"
 	"math/big"
-	"time"
 
 	pb "github.com/raudel25/social-network-distributed-system/pkg/chord/grpc"
-	"google.golang.org/grpc"
 )
 
-func (n *Node) findSuccessor(id *big.Int) *Node {
+func (n *Node) findSuccessor(id *big.Int) (*Node, error) {
+	log.Printf("Find successor for %s", id.String())
+
+	n.fingerLock.Lock()
 	findNode := n.fingerTable.FindNode(id)
+	n.fingerLock.Unlock()
 
 	if findNode == nil {
-		return n
+		return n, nil
 	}
 
-	conn, err := grpc.Dial(findNode.address, grpc.WithInsecure())
-	if err != nil {
-		log.Fatalf("did not connect: %v", err)
-	}
-	defer conn.Close()
-	client := pb.NewChordClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	res, err := client.FindSuccessor(ctx, &pb.IdRequest{Id: id.String()})
-	if err != nil {
-		log.Fatalf("could not find successor: %v", err)
-	}
-	return &Node{id: hashID(res.Address), address: res.Address}
-}
-
-func (n *Node) getPredecessor(address string) (*Node, error) {
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	connection, err := NewGRPConnection(n.address)
+	defer connection.close()
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
 
-	client := pb.NewChordClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	res, err := client.GetPredecessor(ctx, &pb.EmptyRequest{})
+	res, err := connection.client.FindSuccessor(connection.ctx, &pb.IdRequest{Id: id.String()})
 	if err != nil {
 		return nil, err
 	}
@@ -52,16 +32,46 @@ func (n *Node) getPredecessor(address string) (*Node, error) {
 	return &Node{id: hashID(res.Address), address: res.Address}, nil
 }
 
-func (n *Node) notify(address string) {
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+func (n *Node) getPredecessor(address string) (*Node, error) {
+	connection, err := NewGRPConnection(address)
+	defer connection.close()
 	if err != nil {
-		return
+		return nil, err
 	}
-	defer conn.Close()
 
-	client := pb.NewChordClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
+	log.Printf("Find predecessor for %s", address)
+	res, err := connection.client.GetPredecessor(connection.ctx, &pb.EmptyRequest{})
+	if err != nil {
+		return nil, err
+	}
 
-	client.Notify(ctx, &pb.AddressRequest{Address: n.address})
+	return &Node{id: hashID(res.Address), address: res.Address}, nil
+}
+
+func (n *Node) notify(address string) error {
+	connection, err := NewGRPConnection(address)
+	defer connection.close()
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Notify to %s\n", address)
+	connection.client.Notify(connection.ctx, &pb.AddressRequest{Address: n.address})
+
+	return nil
+}
+
+func (n *Node) stabilize() {
+	log.Println("Stabilizing node")
+
+	successor := n.successorsFront()
+	pred, err := n.getPredecessor(successor.address)
+
+	if err == nil && between(pred.id, n.id, successor.id) {
+		n.successorsPushFront(pred)
+	}
+
+	n.notify(n.successorsFront().address)
+
+	log.Println("Node stabilized")
 }

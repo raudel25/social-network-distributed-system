@@ -3,6 +3,7 @@ package chord
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/big"
 	"sync"
 
@@ -27,6 +28,8 @@ type Node struct {
 	dictionary Storage
 	dictLock   sync.RWMutex
 
+	shutdown chan struct{}
+
 	pb.UnimplementedChordServer
 }
 
@@ -38,7 +41,12 @@ func NewNode(address string, config *Configuration, storage *Storage) *Node {
 func (n *Node) FindSuccessor(ctx context.Context, req *pb.IdRequest) (*pb.AddressResponse, error) {
 	id := new(big.Int)
 	id.SetString(req.Id, 10)
-	successor := n.findSuccessor(id)
+
+	successor, err := n.findSuccessor(id)
+	if err != nil {
+		return nil, err
+	}
+
 	return &pb.AddressResponse{
 		Address: successor.address,
 	}, nil
@@ -57,7 +65,6 @@ func (n *Node) GetPredecessor(ctx context.Context, req *pb.AddressRequest) (*pb.
 }
 
 func (n *Node) Notify(ctx context.Context, req *pb.AddressRequest) (*pb.StatusResponse, error) {
-
 	newNode := &Node{
 		id:      hashID(req.Address),
 		address: req.Address,
@@ -80,4 +87,36 @@ func (n *Node) CheckPredecessor(ctx context.Context, req *pb.EmptyRequest) (*pb.
 	}
 
 	return &pb.StatusResponse{Ok: true}, nil
+}
+
+func (n *Node) Join(address string) error {
+	log.Printf("Joining to chord ring %s\n", address)
+
+	newNode := &Node{id: hashID(address), address: address}
+
+	connection, err := NewGRPConnection(address)
+	defer connection.close()
+	if err != nil {
+		return err
+	}
+
+	res, err := connection.client.FindSuccessor(connection.ctx, &pb.IdRequest{Id: hashID(address).String()})
+	if err != nil {
+		return err
+	}
+
+	if res.Address == n.address {
+		return fmt.Errorf("node already exists")
+	}
+
+	n.successorsPushFront(newNode)
+	n.notify(address)
+
+	return nil
+}
+
+func (n *Node) Start() {
+	log.Printf("Starting chord server %s\n", n.address)
+
+	go n.threadStabilize()
 }
