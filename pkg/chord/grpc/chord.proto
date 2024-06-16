@@ -6,49 +6,29 @@ option go_package = "pkg/chord/grpc;chord_pb";
 
 
 service Chord {
-  rpc Join (JoinRequest) returns (JoinResponse);
-  rpc FindSuccessor (FindSuccessorRequest) returns (FindSuccessorResponse);
-  rpc GetPredecessor (GetPredecessorRequest) returns (GetPredecessorResponse);
-  rpc Notify (NotifyRequest) returns (NotifyResponse);
-  rpc CheckPredecessor (CheckPredecessorRequest) returns (CheckPredecessorResponse);
+  rpc Join (IdRequest) returns (StatusResponse);
+  rpc FindSuccessor (IdRequest) returns (AddressResponse);
+  rpc GetPredecessor (EmptyRequest) returns (AddressResponse);
+  rpc Notify (AddressRequest) returns (StatusResponse);
+  rpc CheckPredecessor (AddressRequest) returns (StatusResponse);
 }
 
-message JoinRequest {
-  string NodeId = 1;
-  string Address = 2;
-}
-
-message JoinResponse {
-  string Status = 1;
-}
-
-message FindSuccessorRequest {
+message IdRequest {
   string Id = 1;
 }
 
-message FindSuccessorResponse {
-  string SuccessorId = 1;
-  string SuccessorAddress = 2;
+message AddressRequest {
+  string Address = 1; 
 }
 
-message GetPredecessorRequest {}
+message EmptyRequest{
 
-message GetPredecessorResponse {
-  string PredecessorId = 1;
-  string PredecessorAddress = 2;
 }
 
-message NotifyRequest {
-  string NodeId = 1;
-  string Address = 2;
+message AddressResponse {
+  string Address = 1;
 }
 
-message NotifyResponse {
-  string Status = 1;
-}
-
-message CheckPredecessorRequest {}
-
-message CheckPredecessorResponse {
-  string Status = 1;
+message StatusResponse {
+  bool ok = 1;
 }
