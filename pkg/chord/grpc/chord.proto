@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package chord;
+
+option go_package = "pkg/chord/grpc;chord_pb";
+
+
+service Chord {
+  rpc Join (JoinRequest) returns (JoinResponse);
+  rpc FindSuccessor (FindSuccessorRequest) returns (FindSuccessorResponse);
+  rpc GetPredecessor (GetPredecessorRequest) returns (GetPredecessorResponse);
+  rpc Notify (NotifyRequest) returns (NotifyResponse);
+  rpc CheckPredecessor (CheckPredecessorRequest) returns (CheckPredecessorResponse);
+}
+
+message JoinRequest {
+  string NodeId = 1;
+  string Address = 2;
+}
+
+message JoinResponse {
+  string Status = 1;
+}
+
+message FindSuccessorRequest {
+  string Id = 1;
+}
+
+message FindSuccessorResponse {
+  string SuccessorId = 1;
+  string SuccessorAddress = 2;
+}
+
+message GetPredecessorRequest {}
+
+message GetPredecessorResponse {
+  string PredecessorId = 1;
+  string PredecessorAddress = 2;
+}
+
+message NotifyRequest {
+  string NodeId = 1;
+  string Address = 2;
+}
+
+message NotifyResponse {
+  string Status = 1;
+}
+
+message CheckPredecessorRequest {}
+
+message CheckPredecessorResponse {
+  string Status = 1;
+}
