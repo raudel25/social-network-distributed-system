@@ -22,8 +22,9 @@ type Node struct {
 
 	predecessor *Node
 	predLock    sync.RWMutex
-	successors  *deque.Deque[*Node]
-	sucLock     sync.RWMutex
+
+	successors *deque.Deque[*Node]
+	sucLock    sync.RWMutex
 
 	fingerTable FingerTable
 	fingerLock  sync.RWMutex
@@ -41,7 +42,7 @@ func NewNode(config *Configuration, storage *Storage) *Node {
 		fingerTable: NewFingerTable(config.HashSize), dictionary: storage, config: config}
 }
 
-func (n *Node) FindSuccessor(ctx context.Context, req *pb.IdRequest) (*pb.AddressResponse, error) {
+func (n *Node) FindSuccessor(ctx context.Context, req *pb.IdRequest) (*pb.NodeResponse, error) {
 	id := new(big.Int)
 	id.SetString(req.Id, 10)
 
@@ -50,44 +51,47 @@ func (n *Node) FindSuccessor(ctx context.Context, req *pb.IdRequest) (*pb.Addres
 		return nil, err
 	}
 
-	return &pb.AddressResponse{
+	return &pb.NodeResponse{
+		Id:      successor.id.String(),
 		Address: successor.address,
 	}, nil
 }
 
-func (n *Node) GetPredecessor(ctx context.Context, req *pb.EmptyRequest) (*pb.AddressResponse, error) {
+func (n *Node) GetPredecessor(ctx context.Context, req *pb.EmptyRequest) (*pb.NodeResponse, error) {
 	predecessor := n.getPredecessorProp()
 
 	if predecessor == nil {
 		return nil, fmt.Errorf("not found predecessor")
 	}
 
-	return &pb.AddressResponse{
+	return &pb.NodeResponse{
+		Id:      predecessor.id.String(),
 		Address: predecessor.address,
 	}, nil
 }
 
-func (n *Node) GetSuccessor(ctx context.Context, req *pb.EmptyRequest) (*pb.AddressResponse, error) {
+func (n *Node) GetSuccessor(ctx context.Context, req *pb.EmptyRequest) (*pb.NodeResponse, error) {
 	successor := n.successorsFront()
 
 	if successor == nil {
 		return nil, fmt.Errorf("not found successor")
 	}
 
-	return &pb.AddressResponse{
+	return &pb.NodeResponse{
+		Id:      successor.id.String(),
 		Address: successor.address,
 	}, nil
 }
 
-func (n *Node) Notify(ctx context.Context, req *pb.AddressRequest) (*pb.StatusResponse, error) {
+func (n *Node) Notify(ctx context.Context, req *pb.NodeRequest) (*pb.StatusResponse, error) {
 	newNode := &Node{
-		id:      hashID(req.Address),
+		id:      strToBig(req.Id),
 		address: req.Address,
 	}
 
 	predecessor := n.getPredecessorProp()
 
-	if predecessor == nil || between(newNode.id, predecessor.id, n.id) {
+	if equals(predecessor.id, n.id) || between(newNode.id, predecessor.id, n.id) {
 		n.setPredecessorProp(newNode)
 	}
 
@@ -101,20 +105,21 @@ func (n *Node) Ping(ctx context.Context, req *pb.EmptyRequest) (*pb.StatusRespon
 func (n *Node) Join(address string) error {
 	log.Printf("Joining to chord ring %s\n", address)
 
-	newNode := &Node{id: hashID(address), address: address}
-
 	connection, err := NewGRPConnection(address)
 	if err != nil {
 		return err
 	}
 	defer connection.close()
 
-	res, err := connection.client.FindSuccessor(connection.ctx, &pb.IdRequest{Id: hashID(address).String()})
+	res, err := connection.client.FindSuccessor(connection.ctx, &pb.IdRequest{Id: n.id.String()})
+
+	newNode := &Node{id: strToBig(res.Id), address: res.Address}
+
 	if err != nil {
 		return err
 	}
 
-	if res.Address == n.address {
+	if equals(newNode.id, n.id) {
 		return fmt.Errorf("node already exists")
 	}
 
@@ -143,4 +148,6 @@ func (n *Node) Start(port string) {
 	go n.threadStabilize()
 	go n.threadCheckPredecessor()
 	go n.threadCheckSuccessor()
+	go n.threadFixSuccessors()
+	go n.threadFixFingers()
 }

@@ -1,7 +1,7 @@
 package chord
 
 type Configuration struct {
-	HashSize        int
-	ReplicationSize int
-	JoinAddress     string
+	HashSize       int
+	SuccessorsSize int
+	JoinAddress    string
 }

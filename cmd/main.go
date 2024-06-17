@@ -11,7 +11,7 @@ func main() {
 	join := flag.String("j", "", "Default join is empty")
 	flag.Parse()
 
-	node := chord.NewNode(&chord.Configuration{JoinAddress: *join}, nil)
+	node := chord.NewNode(&chord.Configuration{JoinAddress: *join, SuccessorsSize: 5}, nil)
 
 	node.Start(*port)
 

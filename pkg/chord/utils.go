@@ -21,6 +21,18 @@ func between(id, start, end *big.Int) bool {
 	}
 }
 
+func equals(a *big.Int, b *big.Int) bool {
+	return a.Cmp(b) == 0
+}
+
+func strToBig(str string) *big.Int {
+	bigInt := new(big.Int)
+
+	value, _ := bigInt.SetString(str, 10)
+
+	return value
+}
+
 func getOutboundIP() net.IP {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {

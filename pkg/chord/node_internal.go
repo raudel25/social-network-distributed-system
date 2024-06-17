@@ -7,15 +7,27 @@ import (
 	pb "github.com/raudel25/social-network-distributed-system/pkg/chord/grpc"
 )
 
+func (node *Node) closestFinger(id *big.Int) *Node {
+	for i := len(node.fingerTable) - 1; i >= 0; i-- {
+		node.fingerLock.RLock()
+		finger := node.fingerTable[i]
+		node.fingerLock.RUnlock()
+
+		if finger != nil && between(finger.id, node.id, id) {
+			return finger
+		}
+	}
+
+	return node
+}
+
 func (n *Node) findSuccessor(id *big.Int) (*Node, error) {
 	log.Printf("Find successor for %s", id.String())
 
-	n.fingerLock.Lock()
-	findNode := n.fingerTable.FindNode(id)
-	n.fingerLock.Unlock()
+	findNode := n.closestFinger(id)
 
-	if findNode == nil {
-		return n, nil
+	if equals(findNode.id, n.id) {
+		return n.successorsFront(), nil
 	}
 
 	connection, err := NewGRPConnection(n.address)
@@ -29,7 +41,7 @@ func (n *Node) findSuccessor(id *big.Int) (*Node, error) {
 		return nil, err
 	}
 
-	return &Node{id: hashID(res.Address), address: res.Address}, nil
+	return &Node{id: strToBig(res.Id), address: res.Address}, nil
 }
 
 func (n *Node) getPredecessor(address string) (*Node, error) {
@@ -45,7 +57,7 @@ func (n *Node) getPredecessor(address string) (*Node, error) {
 		return nil, err
 	}
 
-	return &Node{id: hashID(res.Address), address: res.Address}, nil
+	return &Node{id: strToBig(res.Id), address: res.Address}, nil
 }
 
 func (n *Node) notify(address string) {
@@ -57,7 +69,7 @@ func (n *Node) notify(address string) {
 	defer connection.close()
 
 	log.Printf("Notify to %s\n", address)
-	connection.client.Notify(connection.ctx, &pb.AddressRequest{Address: n.address})
+	connection.client.Notify(connection.ctx, &pb.NodeRequest{Id: n.id.String(), Address: n.address})
 }
 
 func (n *Node) stabilize() {
@@ -70,11 +82,11 @@ func (n *Node) stabilize() {
 		return
 	}
 
-	if between(pred.id, n.id, successor.id) {
+	if (equals(successor.id, n.id) && !equals(pred.id, n.id)) || between(pred.id, n.id, successor.id) {
 		n.successorsPushFront(pred)
 		n.notify(pred.address)
 	} else {
-		if n.address != successor.address {
+		if !equals(n.id, successor.id) {
 			n.notify(successor.address)
 		}
 	}
@@ -85,7 +97,7 @@ func (n *Node) stabilize() {
 func (n *Node) checkSuccessor() {
 	successor := n.successorsFront()
 
-	if successor.address == n.address {
+	if equals(successor.id, n.id) {
 		return
 	}
 
@@ -107,14 +119,14 @@ func (n *Node) checkSuccessor() {
 
 	n.successorsPopFront()
 	if n.successorsLen() == 0 {
-		n.successors.PushBack(n)
+		n.successorsPushBack(n)
 	}
 }
 
 func (n *Node) checkPredecessor() {
 	predecessor := n.getPredecessorProp()
 
-	if predecessor.address == n.address {
+	if equals(n.id, predecessor.id) {
 		return
 	}
 
@@ -134,6 +146,86 @@ func (n *Node) checkPredecessor() {
 
 	log.Printf("Predecessor %s has failed\n", predecessor.address)
 	n.setPredecessorProp(n)
+}
+
+func (n *Node) fixSuccessors() {
+	successorsLen := n.successorsLen()
+
+	last := n.successorsBack()
+
+	if equals(last.id, n.id) {
+		if successorsLen != 1 {
+			n.successorsPopBack()
+		} else {
+			return
+		}
+	}
+
+	if successorsLen == n.config.SuccessorsSize {
+		return
+	}
+
+	connection, err := NewGRPConnection(last.address)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	defer connection.close()
+
+	res, err := connection.client.GetSuccessor(connection.ctx, &pb.EmptyRequest{})
+	if err != nil {
+		n.successorsPopBack()
+		if successorsLen == 1 {
+			n.successorsPushBack(n)
+		}
+
+		log.Println(err.Error())
+		return
+	}
+
+	newNode := &Node{id: strToBig(res.Id), address: res.Address}
+
+	if !equals(newNode.id, n.id) {
+		log.Printf("New successor detected %s\n", res.Address)
+		n.successorsPushBack(newNode)
+	}
+}
+
+func (n *Node) fixFingers(index int) int {
+	log.Println("Fixing finger entry.")
+
+	m := n.config.HashSize
+	n.fingerLock.Lock()                          // Obtain the finger table size.
+	id := n.fingerTable.FingerId(n.id, index, m) // Obtain node.ID + 2^(next) mod(2^m).
+	n.fingerLock.Lock()
+	suc, err := n.findSuccessor(id) // Obtain the node that succeeds ID = node.ID + 2^(next) mod(2^m).
+
+	// In case of error finding the successor, report the error and skip this finger.
+	if err != nil || suc == nil {
+		log.Printf("Successor of ID not found.This finger fix was skipped %s\n", err.Error())
+
+		return (index + 1) % m
+	}
+
+	log.Printf("Correspondent finger found at %s\n", suc.address)
+
+	// If the successor of this ID is this node, then the ring has already been turned around.
+	// Clean the remaining positions and return index 0 to restart the fixing cycle.
+	if equals(suc.id, n.id) {
+		for i := index; i < m; i++ {
+			n.fingerLock.Lock()    // Lock finger table to write on it, and unlock it after.
+			n.fingerTable[i] = nil // Clean the correspondent position on the finger table.
+			n.fingerLock.Unlock()
+		}
+		return 0
+	}
+
+	n.fingerLock.Lock()        // Lock finger table to write on it, and unlock it after.
+	n.fingerTable[index] = suc // Update the correspondent position on the finger table.
+	n.fingerLock.Unlock()
+
+	// Return the next index to fix.
+	return (index + 1) % m
 }
 
 func (n *Node) createRing() {

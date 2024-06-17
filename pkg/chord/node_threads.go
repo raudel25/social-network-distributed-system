@@ -8,10 +8,12 @@ import (
 	"google.golang.org/grpc"
 )
 
+const interval = 10
+
 func (n *Node) threadStabilize() {
 	log.Println("Stabilize thread started")
 
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(interval * time.Second)
 	for {
 		select {
 		case <-n.shutdown:
@@ -26,7 +28,7 @@ func (n *Node) threadStabilize() {
 func (n *Node) threadCheckPredecessor() {
 	log.Println("Check predecessor thread started")
 
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(interval * time.Second)
 	for {
 		select {
 		case <-n.shutdown:
@@ -41,7 +43,7 @@ func (n *Node) threadCheckPredecessor() {
 func (n *Node) threadCheckSuccessor() {
 	log.Println("Check successor thread started")
 
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(interval * time.Second)
 	for {
 		select {
 		case <-n.shutdown:
@@ -49,6 +51,37 @@ func (n *Node) threadCheckSuccessor() {
 			return
 		case <-ticker.C:
 			n.checkSuccessor()
+		}
+	}
+}
+
+func (n *Node) threadFixSuccessors() {
+	log.Println("Check fix successors thread started")
+
+	ticker := time.NewTicker(interval * time.Second)
+	for {
+		select {
+		case <-n.shutdown:
+			ticker.Stop()
+			return
+		case <-ticker.C:
+			n.fixSuccessors()
+		}
+	}
+}
+
+func (n *Node) threadFixFingers() {
+	log.Println("Fix fingers thread started.")
+
+	next := 0                                             // Index of the actual finger entry to fix.
+	ticker := time.NewTicker(interval * time.Millisecond) // Set the time between routine activations.
+	for {
+		select {
+		case <-n.shutdown: // If node server is shutdown, stop the thread.
+			ticker.Stop()
+			return
+		case <-ticker.C: // If it's time, fix the correspondent finger table entry.
+			next = n.fixFingers(next)
 		}
 	}
 }

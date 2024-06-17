@@ -6,10 +6,10 @@ option go_package = "pkg/chord/grpc;chord_pb";
 
 
 service Chord {
-  rpc FindSuccessor (IdRequest) returns (AddressResponse);
-  rpc GetPredecessor (EmptyRequest) returns (AddressResponse);
-  rpc GetSuccessor (EmptyRequest) returns (AddressResponse); 
-  rpc Notify (AddressRequest) returns (StatusResponse);
+  rpc FindSuccessor (IdRequest) returns (NodeResponse);
+  rpc GetPredecessor (EmptyRequest) returns (NodeResponse);
+  rpc GetSuccessor (EmptyRequest) returns (NodeResponse); 
+  rpc Notify (NodeRequest) returns (StatusResponse);
   rpc Ping (EmptyRequest) returns (StatusResponse);
 }
 
@@ -17,16 +17,18 @@ message IdRequest {
   string Id = 1;
 }
 
-message AddressRequest {
-  string Address = 1; 
+message NodeRequest {
+  string Id = 1;
+  string Address = 2; 
 }
 
 message EmptyRequest{
 
 }
 
-message AddressResponse {
-  string Address = 1;
+message NodeResponse {
+  string Id = 1; 
+  string Address = 2;
 }
 
 message StatusResponse {
