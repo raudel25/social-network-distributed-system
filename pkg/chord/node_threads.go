@@ -73,8 +73,8 @@ func (n *Node) threadFixSuccessors() {
 func (n *Node) threadFixFingers() {
 	log.Println("Fix fingers thread started.")
 
-	next := 0                                             // Index of the actual finger entry to fix.
-	ticker := time.NewTicker(interval * time.Millisecond) // Set the time between routine activations.
+	next := 0                                        // Index of the actual finger entry to fix.
+	ticker := time.NewTicker(interval * time.Second) // Set the time between routine activations.
 	for {
 		select {
 		case <-n.shutdown: // If node server is shutdown, stop the thread.

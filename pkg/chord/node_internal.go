@@ -197,7 +197,7 @@ func (n *Node) fixFingers(index int) int {
 	m := n.config.HashSize
 	n.fingerLock.Lock()                          // Obtain the finger table size.
 	id := n.fingerTable.FingerId(n.id, index, m) // Obtain node.ID + 2^(next) mod(2^m).
-	n.fingerLock.Lock()
+	n.fingerLock.Unlock()
 	suc, err := n.findSuccessor(id) // Obtain the node that succeeds ID = node.ID + 2^(next) mod(2^m).
 
 	// In case of error finding the successor, report the error and skip this finger.
@@ -220,7 +220,7 @@ func (n *Node) fixFingers(index int) int {
 		return 0
 	}
 
-	n.fingerLock.Lock()        // Lock finger table to write on it, and unlock it after.
+	n.fingerLock.Lock()
 	n.fingerTable[index] = suc // Update the correspondent position on the finger table.
 	n.fingerLock.Unlock()
 
