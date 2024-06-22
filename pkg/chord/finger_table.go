@@ -22,15 +22,16 @@ func (table *FingerTable) FingerId(id *big.Int, i int, m int) *big.Int {
 
 	// Calculates the sum of n and 2^i.
 	sum := big.Int{}
-	sum.Add(id, &pow)
 
+	sum.Add(id, &pow)
 	// Calculates 2^m.
 	pow = big.Int{}
 	pow.Exp(two, big.NewInt(int64(m)), nil)
 
+	newId := big.NewInt(0)
 	// Apply the mod.
-	id.Mod(&sum, &pow)
+	newId.Mod(&sum, &pow)
 
 	// Return the result.
-	return id
+	return newId
 }

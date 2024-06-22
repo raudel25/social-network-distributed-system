@@ -8,8 +8,8 @@ func (n *Node) setPredecessorProp(predecessor *Node) {
 }
 
 func (n *Node) getPredecessorProp() *Node {
-	n.predLock.Lock()
-	defer n.predLock.Unlock()
+	n.predLock.RLock()
+	defer n.predLock.RUnlock()
 
 	return n.predecessor
 }
@@ -43,22 +43,22 @@ func (n *Node) successorsPopFront() {
 }
 
 func (n *Node) successorsFront() *Node {
-	n.sucLock.Lock()
-	defer n.sucLock.Unlock()
+	n.sucLock.RLock()
+	defer n.sucLock.RUnlock()
 
 	return n.successors.Front()
 }
 
 func (n *Node) successorsBack() *Node {
-	n.sucLock.Lock()
-	defer n.sucLock.Unlock()
+	n.sucLock.RLock()
+	defer n.sucLock.RUnlock()
 
 	return n.successors.Back()
 }
 
 func (n *Node) successorsLen() int {
-	n.sucLock.Lock()
-	defer n.sucLock.Unlock()
+	n.sucLock.RLock()
+	defer n.sucLock.RUnlock()
 
 	return n.successors.Len()
 }

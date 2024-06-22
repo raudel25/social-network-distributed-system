@@ -130,10 +130,104 @@ func (n *Node) Join(address string) error {
 	return nil
 }
 
+func (n *Node) Get(ctx context.Context, req *pb.KeyRequest) (*pb.StatusValueResponse, error) {
+	n.dictLock.RLock()
+	value := n.dictionary.Get(req.Key)
+	n.dictLock.RUnlock()
+
+	return &pb.StatusValueResponse{Ok: len(value) != 0, Value: value}, nil
+}
+
+func (n *Node) GetKey(key string) (*string, error) {
+	log.Printf("Get key %s\n", key)
+
+	successor, err := n.findSuccessor(n.hashID(key))
+	if err != nil {
+		return nil, err
+	}
+
+	connection, err := NewGRPConnection(successor.address)
+	if err != nil {
+		return nil, err
+	}
+	connection.close()
+
+	res, err := connection.client.Get(connection.ctx, &pb.KeyRequest{Key: key})
+	if err != nil {
+		return nil, err
+	}
+
+	if res.Ok {
+		return &res.Value, nil
+	}
+
+	return nil, fmt.Errorf("key %s\n not found", key)
+}
+
+func (n *Node) Set(ctx context.Context, req *pb.KeyValueRequest) (*pb.StatusResponse, error) {
+	n.dictLock.Lock()
+	n.dictionary.Set(req.Key, req.Value)
+	n.dictLock.Unlock()
+
+	return &pb.StatusResponse{Ok: true}, nil
+}
+
+func (n *Node) SetKey(key string, value string) error {
+	log.Printf("Set key %s\n", key)
+
+	successor, err := n.findSuccessor(n.hashID(key))
+	if err != nil {
+		return err
+	}
+
+	connection, err := NewGRPConnection(successor.address)
+	if err != nil {
+		return err
+	}
+	connection.close()
+
+	_, err = connection.client.Set(connection.ctx, &pb.KeyValueRequest{Key: key, Value: value})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (n *Node) Remove(ctx context.Context, req *pb.KeyRequest) (*pb.StatusResponse, error) {
+	n.dictLock.Lock()
+	n.dictionary.Remove(req.Key)
+	n.dictLock.Unlock()
+
+	return &pb.StatusResponse{Ok: true}, nil
+}
+
+func (n *Node) RemoveKey(key string, value string) error {
+	log.Printf("Remove key %s\n", key)
+
+	successor, err := n.findSuccessor(n.hashID(key))
+	if err != nil {
+		return err
+	}
+
+	connection, err := NewGRPConnection(successor.address)
+	if err != nil {
+		return err
+	}
+	connection.close()
+
+	_, err = connection.client.Remove(connection.ctx, &pb.KeyRequest{Key: key})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (n *Node) Start(port string) {
 	// n.address = fmt.Sprintf("%s:%s", getOutboundIP().String(), port)
 	n.address = fmt.Sprintf("%s:%s", "localhost", port)
-	n.id = hashID(n.address)
+	n.id = n.hashID(n.address)
 
 	log.Printf("Starting chord server %s\n", n.address)
 
@@ -150,4 +244,8 @@ func (n *Node) Start(port string) {
 	go n.threadCheckSuccessor()
 	go n.threadFixSuccessors()
 	go n.threadFixFingers()
+
+	// if port == "5002" {
+	// 	go n.threadTest()
+	// }
 }

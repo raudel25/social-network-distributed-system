@@ -1,17 +1,10 @@
 package chord
 
 import (
-	"crypto/sha1"
 	"log"
 	"math/big"
 	"net"
 )
-
-func hashID(key string) *big.Int {
-	hash := sha1.New()
-	hash.Write([]byte(key))
-	return new(big.Int).SetBytes(hash.Sum(nil))
-}
 
 func between(id, start, end *big.Int) bool {
 	if start.Cmp(end) <= 0 {

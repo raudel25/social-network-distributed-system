@@ -1,6 +1,7 @@
 package chord
 
 import (
+	"crypto/sha1"
 	"log"
 	"math/big"
 
@@ -195,9 +196,9 @@ func (n *Node) fixFingers(index int) int {
 	log.Println("Fixing finger entry.")
 
 	m := n.config.HashSize
-	n.fingerLock.Lock()                          // Obtain the finger table size.
+	n.fingerLock.RLock()                         // Obtain the finger table size.
 	id := n.fingerTable.FingerId(n.id, index, m) // Obtain node.ID + 2^(next) mod(2^m).
-	n.fingerLock.Unlock()
+	n.fingerLock.RUnlock()
 	suc, err := n.findSuccessor(id) // Obtain the node that succeeds ID = node.ID + 2^(next) mod(2^m).
 
 	// In case of error finding the successor, report the error and skip this finger.
@@ -226,6 +227,20 @@ func (n *Node) fixFingers(index int) int {
 
 	// Return the next index to fix.
 	return (index + 1) % m
+}
+
+func (n *Node) hashID(key string) *big.Int {
+	hash := sha1.New()
+	hash.Write([]byte(key))
+	id := new(big.Int).SetBytes(hash.Sum(nil))
+
+	two := big.NewInt(2)
+	m := big.NewInt(int64(n.config.HashSize))
+	pow := big.Int{}
+	pow.Exp(two, m, nil)
+
+	id.Mod(id, &pow)
+	return id
 }
 
 func (n *Node) createRing() {

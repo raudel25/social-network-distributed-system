@@ -1,6 +1,7 @@
 package chord
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"time"
@@ -82,6 +83,28 @@ func (n *Node) threadFixFingers() {
 			return
 		case <-ticker.C: // If it's time, fix the correspondent finger table entry.
 			next = n.fixFingers(next)
+		}
+	}
+}
+
+func (n *Node) threadTest() {
+	count := 0
+	ticker := time.NewTicker(2 * interval * time.Second) // Set the time between routine activations.
+	for {
+		select {
+		case <-n.shutdown: // If node server is shutdown, stop the thread.
+			ticker.Stop()
+			return
+		case <-ticker.C: // If it's time, fix the correspondent finger table entry.
+			if count%2 == 0 {
+				n.SetKey(fmt.Sprintf("%d", count), fmt.Sprintf("%d", count))
+			} else {
+				v, e := n.GetKey(fmt.Sprintf("%d", count-1))
+				if e == nil {
+					println(v)
+				}
+			}
+			count++
 		}
 	}
 }

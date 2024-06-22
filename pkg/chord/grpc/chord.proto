@@ -11,6 +11,10 @@ service Chord {
   rpc GetSuccessor (EmptyRequest) returns (NodeResponse); 
   rpc Notify (NodeRequest) returns (StatusResponse);
   rpc Ping (EmptyRequest) returns (StatusResponse);
+
+  rpc Get(KeyRequest) returns (StatusValueResponse);
+  rpc Set(KeyValueRequest) returns (StatusResponse);
+  rpc Remove(KeyRequest) returns (StatusResponse);
 }
 
 message IdRequest {
@@ -33,4 +37,18 @@ message NodeResponse {
 
 message StatusResponse {
   bool ok = 1;
+}
+
+message StatusValueResponse{
+  bool ok = 1;
+  string value = 2;
+}
+
+message KeyRequest{
+  string key = 1;
+}
+
+message KeyValueRequest{
+  string key = 1;
+  string value = 2;
 }

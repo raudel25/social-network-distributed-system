@@ -2,30 +2,30 @@ package chord
 
 import (
 	"encoding/json"
+	"io"
 	"io/fs"
-	"io/ioutil"
 	"os"
 )
 
 type Storage interface {
-	Get(key string) interface{}
-	Set(key string, value interface{})
+	Get(key string) string
+	Set(key string, value string)
 	Remove(key string)
 }
 
 type RamStorage struct {
-	store map[string]interface{}
+	store map[string]string
 }
 
 func NewRamStorage() *RamStorage {
-	return &RamStorage{store: make(map[string]interface{})}
+	return &RamStorage{store: make(map[string]string)}
 }
 
-func (s *RamStorage) Get(key string) interface{} {
+func (s *RamStorage) Get(key string) string {
 	return s.store[key]
 }
 
-func (s *RamStorage) Set(key string, value interface{}) {
+func (s *RamStorage) Set(key string, value string) {
 	s.store[key] = value
 }
 
@@ -35,25 +35,24 @@ func (s *RamStorage) Remove(key string) {
 
 // DictStorage struct
 type DictStorage struct {
-	store    map[string]interface{}
+	store    map[string]string
 	filename string
 }
 
 // NewDictStorage creates a new DictStorage
 func NewDictStorage(filename string) *DictStorage {
-	dict := &DictStorage{store: make(map[string]interface{}), filename: filename}
+	dict := &DictStorage{store: make(map[string]string), filename: filename}
 	dict.loadFromFile()
 	return dict
 }
 
 // Get retrieves a value by key
-func (ds *DictStorage) Get(key string) (interface{}, bool) {
-	value, exists := ds.store[key]
-	return value, exists
+func (ds *DictStorage) Get(key string) string {
+	return ds.store[key]
 }
 
 // Set sets a value by key
-func (ds *DictStorage) Set(key string, value interface{}) {
+func (ds *DictStorage) Set(key string, value string) {
 	ds.store[key] = value
 }
 
@@ -80,7 +79,7 @@ func (ds *DictStorage) loadFromFile() error {
 	}
 	defer file.Close()
 
-	data, err := ioutil.ReadAll(file)
+	data, err := io.ReadAll(io.Reader(file))
 	if err != nil {
 		return err
 	}

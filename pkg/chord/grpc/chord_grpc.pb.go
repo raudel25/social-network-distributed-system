@@ -24,6 +24,9 @@ const (
 	Chord_GetSuccessor_FullMethodName   = "/chord.Chord/GetSuccessor"
 	Chord_Notify_FullMethodName         = "/chord.Chord/Notify"
 	Chord_Ping_FullMethodName           = "/chord.Chord/Ping"
+	Chord_Get_FullMethodName            = "/chord.Chord/Get"
+	Chord_Set_FullMethodName            = "/chord.Chord/Set"
+	Chord_Remove_FullMethodName         = "/chord.Chord/Remove"
 )
 
 // ChordClient is the client API for Chord service.
@@ -35,6 +38,9 @@ type ChordClient interface {
 	GetSuccessor(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*NodeResponse, error)
 	Notify(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 	Ping(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*StatusResponse, error)
+	Get(ctx context.Context, in *KeyRequest, opts ...grpc.CallOption) (*StatusValueResponse, error)
+	Set(ctx context.Context, in *KeyValueRequest, opts ...grpc.CallOption) (*StatusResponse, error)
+	Remove(ctx context.Context, in *KeyRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 }
 
 type chordClient struct {
@@ -95,6 +101,36 @@ func (c *chordClient) Ping(ctx context.Context, in *EmptyRequest, opts ...grpc.C
 	return out, nil
 }
 
+func (c *chordClient) Get(ctx context.Context, in *KeyRequest, opts ...grpc.CallOption) (*StatusValueResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StatusValueResponse)
+	err := c.cc.Invoke(ctx, Chord_Get_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *chordClient) Set(ctx context.Context, in *KeyValueRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StatusResponse)
+	err := c.cc.Invoke(ctx, Chord_Set_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *chordClient) Remove(ctx context.Context, in *KeyRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StatusResponse)
+	err := c.cc.Invoke(ctx, Chord_Remove_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ChordServer is the server API for Chord service.
 // All implementations must embed UnimplementedChordServer
 // for forward compatibility
@@ -104,6 +140,9 @@ type ChordServer interface {
 	GetSuccessor(context.Context, *EmptyRequest) (*NodeResponse, error)
 	Notify(context.Context, *NodeRequest) (*StatusResponse, error)
 	Ping(context.Context, *EmptyRequest) (*StatusResponse, error)
+	Get(context.Context, *KeyRequest) (*StatusValueResponse, error)
+	Set(context.Context, *KeyValueRequest) (*StatusResponse, error)
+	Remove(context.Context, *KeyRequest) (*StatusResponse, error)
 	mustEmbedUnimplementedChordServer()
 }
 
@@ -125,6 +164,15 @@ func (UnimplementedChordServer) Notify(context.Context, *NodeRequest) (*StatusRe
 }
 func (UnimplementedChordServer) Ping(context.Context, *EmptyRequest) (*StatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
+}
+func (UnimplementedChordServer) Get(context.Context, *KeyRequest) (*StatusValueResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
+}
+func (UnimplementedChordServer) Set(context.Context, *KeyValueRequest) (*StatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Set not implemented")
+}
+func (UnimplementedChordServer) Remove(context.Context, *KeyRequest) (*StatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Remove not implemented")
 }
 func (UnimplementedChordServer) mustEmbedUnimplementedChordServer() {}
 
@@ -229,6 +277,60 @@ func _Chord_Ping_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Chord_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(KeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChordServer).Get(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Chord_Get_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChordServer).Get(ctx, req.(*KeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Chord_Set_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(KeyValueRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChordServer).Set(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Chord_Set_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChordServer).Set(ctx, req.(*KeyValueRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Chord_Remove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(KeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChordServer).Remove(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Chord_Remove_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChordServer).Remove(ctx, req.(*KeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Chord_ServiceDesc is the grpc.ServiceDesc for Chord service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -255,6 +357,18 @@ var Chord_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Ping",
 			Handler:    _Chord_Ping_Handler,
+		},
+		{
+			MethodName: "Get",
+			Handler:    _Chord_Get_Handler,
+		},
+		{
+			MethodName: "Set",
+			Handler:    _Chord_Set_Handler,
+		},
+		{
+			MethodName: "Remove",
+			Handler:    _Chord_Remove_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
