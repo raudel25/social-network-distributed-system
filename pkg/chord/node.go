@@ -150,9 +150,9 @@ func (n *Node) GetKey(key string) (*string, error) {
 	if err != nil {
 		return nil, err
 	}
-	connection.close()
+	defer connection.close()
 
-	res, err := connection.client.Get(connection.ctx, &pb.KeyRequest{Key: key})
+	res, err := connection.client.Get(connection.ctx, &pb.KeyRequest{Key: fmt.Sprintf("key:%s", key)})
 	if err != nil {
 		return nil, err
 	}
@@ -184,9 +184,9 @@ func (n *Node) SetKey(key string, value string) error {
 	if err != nil {
 		return err
 	}
-	connection.close()
+	defer connection.close()
 
-	_, err = connection.client.Set(connection.ctx, &pb.KeyValueRequest{Key: key, Value: value})
+	_, err = connection.client.Set(connection.ctx, &pb.KeyValueRequest{Key: fmt.Sprintf("key:%s", key), Value: value})
 	if err != nil {
 		return err
 	}
@@ -214,9 +214,9 @@ func (n *Node) RemoveKey(key string, value string) error {
 	if err != nil {
 		return err
 	}
-	connection.close()
+	defer connection.close()
 
-	_, err = connection.client.Remove(connection.ctx, &pb.KeyRequest{Key: key})
+	_, err = connection.client.Remove(connection.ctx, &pb.KeyRequest{Key: fmt.Sprintf("key:%s", key)})
 	if err != nil {
 		return err
 	}
@@ -245,7 +245,7 @@ func (n *Node) Start(port string) {
 	go n.threadFixSuccessors()
 	go n.threadFixFingers()
 
-	// if port == "5002" {
-	// 	go n.threadTest()
-	// }
+	if port == "5002" {
+		go n.threadTest()
+	}
 }

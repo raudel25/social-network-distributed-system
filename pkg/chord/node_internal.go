@@ -31,7 +31,7 @@ func (n *Node) findSuccessor(id *big.Int) (*Node, error) {
 		return n.successorsFront(), nil
 	}
 
-	connection, err := NewGRPConnection(n.address)
+	connection, err := NewGRPConnection(findNode.address)
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +193,7 @@ func (n *Node) fixSuccessors() {
 }
 
 func (n *Node) fixFingers(index int) int {
-	log.Println("Fixing finger entry.")
+	log.Println("Fixing finger entry")
 
 	m := n.config.HashSize
 	n.fingerLock.RLock()                         // Obtain the finger table size.
