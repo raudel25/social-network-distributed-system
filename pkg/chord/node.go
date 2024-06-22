@@ -39,7 +39,7 @@ type Node struct {
 
 func NewNode(config *Configuration, storage *Storage) *Node {
 	return &Node{predecessor: nil, successors: &deque.Deque[*Node]{},
-		fingerTable: NewFingerTable(config.HashSize), dictionary: storage, config: config}
+		fingerTable: NewFingerTable(config.HashSize), dictionary: NewRamStorage(), config: config}
 }
 
 func (n *Node) FindSuccessor(ctx context.Context, req *pb.IdRequest) (*pb.NodeResponse, error) {
