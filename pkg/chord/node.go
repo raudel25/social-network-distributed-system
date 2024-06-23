@@ -6,7 +6,6 @@ import (
 	"log"
 	"math/big"
 
-	// "net"
 	"sync"
 
 	"github.com/gammazero/deque"
@@ -127,6 +126,10 @@ func (n *Node) Join(address string) error {
 	n.notify(address)
 	n.setPredecessorProp(n)
 
+	n.fingerLock.Lock()
+	n.fingerTable[0] = newNode
+	n.fingerLock.Unlock()
+
 	return nil
 }
 
@@ -165,9 +168,17 @@ func (n *Node) GetKey(key string) (*string, error) {
 }
 
 func (n *Node) Set(ctx context.Context, req *pb.KeyValueRequest) (*pb.StatusResponse, error) {
+	// println(req.Key)
 	n.dictLock.Lock()
 	n.dictionary.Set(req.Key, req.Value)
 	n.dictLock.Unlock()
+
+	if req.Rep {
+		err := n.setReplicate(req.Key, req.Value)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return &pb.StatusResponse{Ok: true}, nil
 }
@@ -186,7 +197,7 @@ func (n *Node) SetKey(key string, value string) error {
 	}
 	defer connection.close()
 
-	_, err = connection.client.Set(connection.ctx, &pb.KeyValueRequest{Key: fmt.Sprintf("key:%s", key), Value: value})
+	_, err = connection.client.Set(connection.ctx, &pb.KeyValueRequest{Key: fmt.Sprintf("key:%s", key), Value: value, Rep: true})
 	if err != nil {
 		return err
 	}
@@ -198,6 +209,13 @@ func (n *Node) Remove(ctx context.Context, req *pb.KeyRequest) (*pb.StatusRespon
 	n.dictLock.Lock()
 	n.dictionary.Remove(req.Key)
 	n.dictLock.Unlock()
+
+	if req.Rep {
+		err := n.removeReplicate(req.Key)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return &pb.StatusResponse{Ok: true}, nil
 }
@@ -216,7 +234,7 @@ func (n *Node) RemoveKey(key string, value string) error {
 	}
 	defer connection.close()
 
-	_, err = connection.client.Remove(connection.ctx, &pb.KeyRequest{Key: fmt.Sprintf("key:%s", key)})
+	_, err = connection.client.Remove(connection.ctx, &pb.KeyRequest{Key: fmt.Sprintf("key:%s", key), Rep: true})
 	if err != nil {
 		return err
 	}
@@ -234,7 +252,7 @@ func (n *Node) Start(port string) {
 	s := grpc.NewServer()
 	pb.RegisterChordServer(s, n)
 
-	log.Printf("Chord server is running %s\n", n.address)
+	log.Printf("Chord server is running address:%s id:%s\n", n.address, n.id.String())
 
 	n.createRingOrJoin()
 

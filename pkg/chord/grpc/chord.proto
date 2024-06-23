@@ -46,9 +46,11 @@ message StatusValueResponse{
 
 message KeyRequest{
   string key = 1;
+  bool rep = 2;
 }
 
 message KeyValueRequest{
   string key = 1;
   string value = 2;
+  bool rep = 3;
 }

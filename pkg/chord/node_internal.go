@@ -2,6 +2,7 @@ package chord
 
 import (
 	"crypto/sha1"
+	"fmt"
 	"log"
 	"math/big"
 
@@ -241,6 +242,40 @@ func (n *Node) hashID(key string) *big.Int {
 
 	id.Mod(id, &pow)
 	return id
+}
+
+func (n *Node) setReplicate(key string, value string) error {
+	log.Printf("Set replicate key %s\n", key)
+
+	connection, err := NewGRPConnection(n.successorsFront().address)
+	if err != nil {
+		return err
+	}
+	defer connection.close()
+
+	_, err = connection.client.Set(connection.ctx, &pb.KeyValueRequest{Key: fmt.Sprintf("rep:%s", key), Value: value, Rep: false})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (n *Node) removeReplicate(key string) error {
+	log.Printf("Remove replicate key %s\n", key)
+
+	connection, err := NewGRPConnection(n.successorsFront().address)
+	if err != nil {
+		return err
+	}
+	defer connection.close()
+
+	_, err = connection.client.Remove(connection.ctx, &pb.KeyRequest{Key: fmt.Sprintf("rep:%s", key), Rep: false})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (n *Node) createRing() {

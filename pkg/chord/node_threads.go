@@ -99,13 +99,7 @@ func (n *Node) threadTest() {
 			if count%2 == 0 {
 				n.SetKey(fmt.Sprintf("%d", count), fmt.Sprintf("%d", count))
 			} else {
-				v, e := n.GetKey(fmt.Sprintf("%d", count-1))
-				if e == nil {
-					println("aa")
-					println(*v)
-				} else {
-					println(e.Error())
-				}
+				n.GetKey(fmt.Sprintf("%d", count-1))
 			}
 			count++
 		}
