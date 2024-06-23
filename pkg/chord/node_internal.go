@@ -122,7 +122,9 @@ func (n *Node) checkSuccessor() {
 	n.successorsPopFront()
 	if n.successorsLen() == 0 {
 		n.successorsPushBack(n)
+		return
 	}
+	n.failSuccessorStorage()
 }
 
 func (n *Node) checkPredecessor() {
@@ -148,6 +150,7 @@ func (n *Node) checkPredecessor() {
 
 	log.Printf("Predecessor %s has failed\n", predecessor.address)
 	n.setPredecessorProp(n)
+	n.failPredecessorStorage()
 }
 
 func (n *Node) fixSuccessors() {
@@ -253,7 +256,7 @@ func (n *Node) setReplicate(key string, value string) error {
 	}
 	defer connection.close()
 
-	_, err = connection.client.Set(connection.ctx, &pb.KeyValueRequest{Key: fmt.Sprintf("rep:%s", key), Value: value, Rep: false})
+	_, err = connection.client.Set(connection.ctx, &pb.KeyValueRequest{Key: fmt.Sprintf("rep:%s", key[4:]), Value: value, Rep: false})
 	if err != nil {
 		return err
 	}
@@ -270,12 +273,70 @@ func (n *Node) removeReplicate(key string) error {
 	}
 	defer connection.close()
 
-	_, err = connection.client.Remove(connection.ctx, &pb.KeyRequest{Key: fmt.Sprintf("rep:%s", key), Rep: false})
+	_, err = connection.client.Remove(connection.ctx, &pb.KeyRequest{Key: fmt.Sprintf("rep:%s", key[4:]), Rep: false})
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (n *Node) failPredecessorStorage() {
+	log.Println("Absorbe all predecessor data")
+
+	n.dictLock.RLock()
+	dict := n.dictionary.GetAll()
+	n.dictLock.RUnlock()
+
+	newDict := make(map[string]string)
+
+	n.dictLock.Lock()
+	for key, value := range dict {
+		if keyType(key) != "rep" {
+			continue
+		}
+
+		n.dictionary.Remove(key)
+		n.dictionary.Set(fmt.Sprintf("key:%s", key[4:]), value)
+		newDict[fmt.Sprintf("key:%s", key[4:])] = value
+	}
+	n.dictLock.Unlock()
+
+	connection, err := NewGRPConnection(n.successorsFront().address)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	defer connection.close()
+
+	connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict})
+}
+
+func (n *Node) failSuccessorStorage() {
+	log.Println("Replicate all data in new successor")
+
+	n.dictLock.RLock()
+	dict := n.dictionary.GetAll()
+	n.dictLock.RUnlock()
+
+	newDict := make(map[string]string)
+
+	for key, value := range dict {
+		if keyType(key) != "key" {
+			continue
+		}
+
+		newDict[fmt.Sprintf("rep:%s", key[4:])] = value
+	}
+
+	connection, err := NewGRPConnection(n.successorsFront().address)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	defer connection.close()
+
+	connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict})
 }
 
 func (n *Node) createRing() {

@@ -168,12 +168,11 @@ func (n *Node) GetKey(key string) (*string, error) {
 }
 
 func (n *Node) Set(ctx context.Context, req *pb.KeyValueRequest) (*pb.StatusResponse, error) {
-	// println(req.Key)
 	n.dictLock.Lock()
 	n.dictionary.Set(req.Key, req.Value)
 	n.dictLock.Unlock()
 
-	if req.Rep {
+	if req.Rep && !equals(n.id, n.successorsFront().id) {
 		err := n.setReplicate(req.Key, req.Value)
 		if err != nil {
 			return nil, err
@@ -210,7 +209,7 @@ func (n *Node) Remove(ctx context.Context, req *pb.KeyRequest) (*pb.StatusRespon
 	n.dictionary.Remove(req.Key)
 	n.dictLock.Unlock()
 
-	if req.Rep {
+	if req.Rep && !equals(n.id, n.successorsFront().id) {
 		err := n.removeReplicate(req.Key)
 		if err != nil {
 			return nil, err
@@ -240,6 +239,14 @@ func (n *Node) RemoveKey(key string, value string) error {
 	}
 
 	return nil
+}
+
+func (n *Node) SetPartition(ctx context.Context, req *pb.PartitionRequest) (*pb.StatusResponse, error) {
+	n.dictLock.Lock()
+	n.dictionary.SetAll(req.Dict)
+	n.dictLock.Unlock()
+
+	return &pb.StatusResponse{Ok: true}, nil
 }
 
 func (n *Node) Start(port string) {

@@ -9,7 +9,9 @@ import (
 
 type Storage interface {
 	Get(key string) string
+	GetAll() map[string]string
 	Set(key string, value string)
+	SetAll(dict map[string]string)
 	Remove(key string)
 }
 
@@ -31,6 +33,16 @@ func (s *RamStorage) Set(key string, value string) {
 
 func (s *RamStorage) Remove(key string) {
 	delete(s.store, key)
+}
+
+func (s *RamStorage) GetAll() map[string]string {
+	return s.store
+}
+
+func (s *RamStorage) SetAll(dict map[string]string) {
+	for _, key := range dict {
+		s.store[key] = dict[key]
+	}
 }
 
 // DictStorage struct
@@ -60,6 +72,16 @@ func (ds *DictStorage) Set(key string, value string) {
 func (ds *DictStorage) Remove(key string) {
 	delete(ds.store, key)
 	ds.saveToFile()
+}
+
+func (ds *DictStorage) GetAll() map[string]string {
+	return ds.store
+}
+
+func (ds *DictStorage) SetAll(dict map[string]string) {
+	for _, key := range dict {
+		ds.store[key] = dict[key]
+	}
 }
 
 // SaveToFile saves the storage to a JSON file

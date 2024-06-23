@@ -26,6 +26,7 @@ const (
 	Chord_Ping_FullMethodName           = "/chord.Chord/Ping"
 	Chord_Get_FullMethodName            = "/chord.Chord/Get"
 	Chord_Set_FullMethodName            = "/chord.Chord/Set"
+	Chord_SetPartition_FullMethodName   = "/chord.Chord/SetPartition"
 	Chord_Remove_FullMethodName         = "/chord.Chord/Remove"
 )
 
@@ -40,6 +41,7 @@ type ChordClient interface {
 	Ping(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 	Get(ctx context.Context, in *KeyRequest, opts ...grpc.CallOption) (*StatusValueResponse, error)
 	Set(ctx context.Context, in *KeyValueRequest, opts ...grpc.CallOption) (*StatusResponse, error)
+	SetPartition(ctx context.Context, in *PartitionRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 	Remove(ctx context.Context, in *KeyRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 }
 
@@ -121,6 +123,16 @@ func (c *chordClient) Set(ctx context.Context, in *KeyValueRequest, opts ...grpc
 	return out, nil
 }
 
+func (c *chordClient) SetPartition(ctx context.Context, in *PartitionRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StatusResponse)
+	err := c.cc.Invoke(ctx, Chord_SetPartition_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *chordClient) Remove(ctx context.Context, in *KeyRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(StatusResponse)
@@ -142,6 +154,7 @@ type ChordServer interface {
 	Ping(context.Context, *EmptyRequest) (*StatusResponse, error)
 	Get(context.Context, *KeyRequest) (*StatusValueResponse, error)
 	Set(context.Context, *KeyValueRequest) (*StatusResponse, error)
+	SetPartition(context.Context, *PartitionRequest) (*StatusResponse, error)
 	Remove(context.Context, *KeyRequest) (*StatusResponse, error)
 	mustEmbedUnimplementedChordServer()
 }
@@ -170,6 +183,9 @@ func (UnimplementedChordServer) Get(context.Context, *KeyRequest) (*StatusValueR
 }
 func (UnimplementedChordServer) Set(context.Context, *KeyValueRequest) (*StatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Set not implemented")
+}
+func (UnimplementedChordServer) SetPartition(context.Context, *PartitionRequest) (*StatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetPartition not implemented")
 }
 func (UnimplementedChordServer) Remove(context.Context, *KeyRequest) (*StatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Remove not implemented")
@@ -313,6 +329,24 @@ func _Chord_Set_Handler(srv interface{}, ctx context.Context, dec func(interface
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Chord_SetPartition_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PartitionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChordServer).SetPartition(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Chord_SetPartition_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChordServer).SetPartition(ctx, req.(*PartitionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Chord_Remove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(KeyRequest)
 	if err := dec(in); err != nil {
@@ -365,6 +399,10 @@ var Chord_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Set",
 			Handler:    _Chord_Set_Handler,
+		},
+		{
+			MethodName: "SetPartition",
+			Handler:    _Chord_SetPartition_Handler,
 		},
 		{
 			MethodName: "Remove",
