@@ -155,7 +155,7 @@ func (n *Node) GetKey(key string) (*string, error) {
 	}
 	defer connection.close()
 
-	res, err := connection.client.Get(connection.ctx, &pb.KeyRequest{Key: fmt.Sprintf("key:%s", key)})
+	res, err := connection.client.Get(connection.ctx, &pb.KeyRequest{Key: key})
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +196,7 @@ func (n *Node) SetKey(key string, value string) error {
 	}
 	defer connection.close()
 
-	_, err = connection.client.Set(connection.ctx, &pb.KeyValueRequest{Key: fmt.Sprintf("key:%s", key), Value: value, Rep: true})
+	_, err = connection.client.Set(connection.ctx, &pb.KeyValueRequest{Key: key, Value: value, Rep: true})
 	if err != nil {
 		return err
 	}
@@ -233,7 +233,7 @@ func (n *Node) RemoveKey(key string, value string) error {
 	}
 	defer connection.close()
 
-	_, err = connection.client.Remove(connection.ctx, &pb.KeyRequest{Key: fmt.Sprintf("key:%s", key), Rep: true})
+	_, err = connection.client.Remove(connection.ctx, &pb.KeyRequest{Key: key, Rep: true})
 	if err != nil {
 		return err
 	}

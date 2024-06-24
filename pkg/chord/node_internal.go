@@ -2,7 +2,6 @@ package chord
 
 import (
 	"crypto/sha1"
-	"fmt"
 	"log"
 	"math/big"
 
@@ -120,11 +119,9 @@ func (n *Node) checkSuccessor() {
 	log.Printf("Successor %s has failed\n", successor.address)
 
 	n.successorsPopFront()
-	if n.successorsLen() == 0 {
-		n.successorsPushBack(n)
-		return
+	if !equals(n.successorsFront().id, n.id) {
+		n.failSuccessorStorage()
 	}
-	n.failSuccessorStorage()
 }
 
 func (n *Node) checkPredecessor() {
@@ -150,7 +147,7 @@ func (n *Node) checkPredecessor() {
 
 	log.Printf("Predecessor %s has failed\n", predecessor.address)
 	n.setPredecessorProp(n)
-	n.failPredecessorStorage()
+	n.failPredecessorStorage(predecessor.id)
 }
 
 func (n *Node) fixSuccessors() {
@@ -256,7 +253,7 @@ func (n *Node) setReplicate(key string, value string) error {
 	}
 	defer connection.close()
 
-	_, err = connection.client.Set(connection.ctx, &pb.KeyValueRequest{Key: fmt.Sprintf("rep:%s", key[4:]), Value: value, Rep: false})
+	_, err = connection.client.Set(connection.ctx, &pb.KeyValueRequest{Key: key, Value: value, Rep: false})
 	if err != nil {
 		return err
 	}
@@ -273,7 +270,7 @@ func (n *Node) removeReplicate(key string) error {
 	}
 	defer connection.close()
 
-	_, err = connection.client.Remove(connection.ctx, &pb.KeyRequest{Key: fmt.Sprintf("rep:%s", key[4:]), Rep: false})
+	_, err = connection.client.Remove(connection.ctx, &pb.KeyRequest{Key: key, Rep: false})
 	if err != nil {
 		return err
 	}
@@ -281,7 +278,7 @@ func (n *Node) removeReplicate(key string) error {
 	return nil
 }
 
-func (n *Node) failPredecessorStorage() {
+func (n *Node) failPredecessorStorage(predId *big.Int) {
 	log.Println("Absorbe all predecessor data")
 
 	n.dictLock.RLock()
@@ -292,13 +289,12 @@ func (n *Node) failPredecessorStorage() {
 
 	n.dictLock.Lock()
 	for key, value := range dict {
-		if keyType(key) != "rep" {
+		keyId := n.hashID(key)
+		if between(keyId, predId, n.id) {
 			continue
 		}
 
-		n.dictionary.Remove(key)
-		n.dictionary.Set(fmt.Sprintf("key:%s", key[4:]), value)
-		newDict[fmt.Sprintf("key:%s", key[4:])] = value
+		newDict[key] = value
 	}
 	n.dictLock.Unlock()
 
@@ -321,12 +317,15 @@ func (n *Node) failSuccessorStorage() {
 
 	newDict := make(map[string]string)
 
+	predId := n.getPredecessorProp().id
+
 	for key, value := range dict {
-		if keyType(key) != "key" {
+		keyId := n.hashID(key)
+		if !between(keyId, predId, n.id) {
 			continue
 		}
 
-		newDict[fmt.Sprintf("rep:%s", key[4:])] = value
+		newDict[key] = value
 	}
 
 	connection, err := NewGRPConnection(n.successorsFront().address)

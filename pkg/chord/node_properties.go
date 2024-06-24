@@ -33,6 +33,9 @@ func (n *Node) successorsPopBack() {
 	defer n.sucLock.Unlock()
 
 	n.successors.PopBack()
+	if n.successors.Len() == 0 {
+		n.successors.PushBack(n)
+	}
 }
 
 func (n *Node) successorsPopFront() {
@@ -40,6 +43,9 @@ func (n *Node) successorsPopFront() {
 	defer n.sucLock.Unlock()
 
 	n.successors.PopFront()
+	if n.successors.Len() == 0 {
+		n.successors.PushFront(n)
+	}
 }
 
 func (n *Node) successorsFront() *Node {

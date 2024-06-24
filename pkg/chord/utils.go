@@ -26,10 +26,6 @@ func strToBig(str string) *big.Int {
 	return value
 }
 
-func keyType(key string) string {
-	return key[0:3]
-}
-
 func getOutboundIP() net.IP {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
