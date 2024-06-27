@@ -2,12 +2,11 @@ package my_list
 
 type MyList[T any] struct {
 	list     []T
-	len      int
 	capacity int
 }
 
 func NewMyList[T any](capacity int) *MyList[T] {
-	return &MyList[T]{capacity: capacity, len: 0, list: make([]T, 0)}
+	return &MyList[T]{capacity: capacity, list: make([]T, 0)}
 }
 
 func (q *MyList[T]) GetIndex(index int) T {
@@ -38,5 +37,5 @@ func (q *MyList[T]) RemoveIndex(index int) {
 }
 
 func (q *MyList[T]) Len() int {
-	return q.len
+	return len(q.list)
 }

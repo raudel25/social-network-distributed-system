@@ -186,47 +186,78 @@ func (n *Node) checkPredecessor() {
 	}
 }
 
-func (n *Node) fixSuccessors() {
-	// successorsLen := n.successorsLen()
+func (n *Node) fixSuccessors(index int) int {
+	log.Println("Fix successors")
+	println(n.successors.Len())
+	println(index)
 
-	// last := n.successorsBack()
+	n.sucLock.RLock()
+	suc := n.successors.GetIndex(index)
+	len := n.successors.Len()
+	last := n.successors.GetIndex(len - 1)
+	n.sucLock.RUnlock()
 
-	// if equals(last.id, n.id) {
-	// 	if successorsLen != 1 {
-	// 		n.successorsPopBack()
-	// 	} else {
-	// 		return
-	// 	}
-	// }
+	if suc.id == n.id && len == 1 {
+		return 0
+	}
 
-	// if successorsLen == n.config.SuccessorsSize {
-	// 	return
-	// }
+	if len != 1 && equals(last.id, n.id) {
+		n.sucLock.Lock()
+		n.successors.RemoveIndex(len - 1)
+		n.sucLock.Unlock()
+		len--
+	}
 
-	// connection, err := NewGRPConnection(last.address)
-	// if err != nil {
-	// 	log.Println(err.Error())
-	// 	return
-	// }
-	// defer connection.close()
+	connection, err := NewGRPConnection(suc.address)
+	if err != nil {
+		log.Println(err.Error())
+		return 0
+	}
+	defer connection.close()
 
-	// res, err := connection.client.GetSuccessor(connection.ctx, &pb.EmptyRequest{})
-	// if err != nil {
-	// 	n.successorsPopBack()
-	// 	if successorsLen == 1 {
-	// 		n.successorsPushBack(n)
-	// 	}
+	n.sucLock.Lock()
+	defer n.sucLock.Unlock()
 
-	// 	log.Println(err.Error())
-	// 	return
-	// }
+	res, err := connection.client.GetSuccessor(connection.ctx, &pb.EmptyRequest{})
+	if err != nil {
+		log.Println(err.Error())
+		n.successors.RemoveIndex(index)
+		if n.successors.Len() == 0 {
+			n.successors.SetIndex(0, n)
+		}
+		return index % n.successors.Len()
+	}
 
-	// newNode := &Node{id: strToBig(res.Id), address: res.Address}
+	sucRes := &Node{address: res.Address, id: strToBig(res.Id)}
 
-	// if !equals(newNode.id, n.id) {
-	// 	log.Printf("New successor detected %s\n", res.Address)
-	// 	n.successorsPushBack(newNode)
-	// }
+	if equals(sucRes.id, n.id) || index == n.config.SuccessorsSize-1 {
+		return 0
+	}
+
+	if index == len-1 {
+		n.successors.SetIndex(index+1, sucRes)
+		return (index + 1) % n.successors.Len()
+	}
+
+	sucSuc := n.successors.GetIndex(index + 1)
+
+	if !equals(sucRes.id, sucSuc.id) {
+		n.successors.SetIndex(index+1, sucRes)
+
+		find := false
+
+		for i := 0; i < n.successors.Len(); i++ {
+			if equals(sucRes.id, n.successors.GetIndex(i).id) {
+				find = true
+			}
+		}
+
+		if !find {
+
+		}
+	}
+
+	return (index + 1) % n.successors.Len()
 }
 
 func (n *Node) fixFingers(index int) int {
