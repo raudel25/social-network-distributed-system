@@ -8,8 +8,8 @@ import (
 
 	"sync"
 
-	"github.com/gammazero/deque"
 	pb "github.com/raudel25/social-network-distributed-system/pkg/chord/grpc"
+	my_list "github.com/raudel25/social-network-distributed-system/pkg/my_list"
 	"google.golang.org/grpc"
 )
 
@@ -19,10 +19,10 @@ type Node struct {
 	id      *big.Int
 	address string
 
-	predecessor *Node
-	predLock    sync.RWMutex
+	predecessors *my_list.MyList[*Node]
+	predLock     sync.RWMutex
 
-	successors *deque.Deque[*Node]
+	successors *my_list.MyList[*Node]
 	sucLock    sync.RWMutex
 
 	fingerTable FingerTable
@@ -37,7 +37,7 @@ type Node struct {
 }
 
 func NewNode(config *Configuration, storage *Storage) *Node {
-	return &Node{predecessor: nil, successors: &deque.Deque[*Node]{},
+	return &Node{predecessors: my_list.NewMyList[*Node](config.SuccessorsSize), successors: my_list.NewMyList[*Node](config.SuccessorsSize),
 		fingerTable: NewFingerTable(config.HashSize), dictionary: NewRamStorage(), config: config}
 }
 
@@ -57,7 +57,9 @@ func (n *Node) FindSuccessor(ctx context.Context, req *pb.IdRequest) (*pb.NodeRe
 }
 
 func (n *Node) GetPredecessor(ctx context.Context, req *pb.EmptyRequest) (*pb.NodeResponse, error) {
-	predecessor := n.getPredecessorProp()
+	n.predLock.RLock()
+	predecessor := n.predecessors.GetIndex(0)
+	n.predLock.RUnlock()
 
 	if predecessor == nil {
 		return nil, fmt.Errorf("not found predecessor")
@@ -70,7 +72,9 @@ func (n *Node) GetPredecessor(ctx context.Context, req *pb.EmptyRequest) (*pb.No
 }
 
 func (n *Node) GetSuccessor(ctx context.Context, req *pb.EmptyRequest) (*pb.NodeResponse, error) {
-	successor := n.successorsFront()
+	n.sucLock.RLock()
+	successor := n.successors.GetIndex(0)
+	n.sucLock.RUnlock()
 
 	if successor == nil {
 		return nil, fmt.Errorf("not found successor")
@@ -88,10 +92,14 @@ func (n *Node) Notify(ctx context.Context, req *pb.NodeRequest) (*pb.StatusRespo
 		address: req.Address,
 	}
 
-	predecessor := n.getPredecessorProp()
+	n.predLock.RLock()
+	predecessor := n.predecessors.GetIndex(0)
+	n.predLock.RUnlock()
 
 	if equals(predecessor.id, n.id) || between(newNode.id, predecessor.id, n.id) {
-		n.setPredecessorProp(newNode)
+		n.predLock.Lock()
+		n.predecessors.SetIndex(0, newNode)
+		n.predLock.Unlock()
 	}
 
 	return &pb.StatusResponse{Ok: true}, nil
@@ -112,19 +120,24 @@ func (n *Node) Join(address string) error {
 
 	res, err := connection.client.FindSuccessor(connection.ctx, &pb.IdRequest{Id: n.id.String()})
 
-	newNode := &Node{id: strToBig(res.Id), address: res.Address}
-
 	if err != nil {
 		return err
 	}
+
+	newNode := &Node{id: strToBig(res.Id), address: res.Address}
 
 	if equals(newNode.id, n.id) {
 		return fmt.Errorf("node already exists")
 	}
 
-	n.successorsPushFront(newNode)
+	n.sucLock.Lock()
+	n.successors.SetIndex(0, newNode)
+	n.sucLock.Unlock()
 	n.notify(address)
-	n.setPredecessorProp(n)
+
+	n.predLock.Lock()
+	n.predecessors.SetIndex(0, n)
+	n.predLock.Unlock()
 
 	n.fingerLock.Lock()
 	n.fingerTable[0] = newNode
@@ -172,7 +185,11 @@ func (n *Node) Set(ctx context.Context, req *pb.KeyValueRequest) (*pb.StatusResp
 	n.dictionary.Set(req.Key, req.Value)
 	n.dictLock.Unlock()
 
-	if req.Rep && !equals(n.id, n.successorsFront().id) {
+	n.sucLock.RLock()
+	suc := n.successors.GetIndex(0)
+	n.sucLock.RUnlock()
+
+	if req.Rep && !equals(suc.id, n.id) {
 		err := n.setReplicate(req.Key, req.Value)
 		if err != nil {
 			return nil, err
@@ -209,7 +226,11 @@ func (n *Node) Remove(ctx context.Context, req *pb.KeyRequest) (*pb.StatusRespon
 	n.dictionary.Remove(req.Key)
 	n.dictLock.Unlock()
 
-	if req.Rep && !equals(n.id, n.successorsFront().id) {
+	n.sucLock.RLock()
+	suc := n.successors.GetIndex(0)
+	n.sucLock.RUnlock()
+
+	if req.Rep && !equals(n.id, suc.id) {
 		err := n.removeReplicate(req.Key)
 		if err != nil {
 			return nil, err

@@ -28,7 +28,9 @@ func (n *Node) findSuccessor(id *big.Int) (*Node, error) {
 	findNode := n.closestFinger(id)
 
 	if equals(findNode.id, n.id) {
-		return n.successorsFront(), nil
+		n.sucLock.RLock()
+		defer n.sucLock.RUnlock()
+		return n.predecessors.GetIndex(0), nil
 	}
 
 	connection, err := NewGRPConnection(findNode.address)
@@ -76,7 +78,10 @@ func (n *Node) notify(address string) {
 func (n *Node) stabilize() {
 	log.Println("Stabilizing node")
 
-	successor := n.successorsFront()
+	n.sucLock.RLock()
+	successor := n.successors.GetIndex(0)
+	n.sucLock.RUnlock()
+
 	pred, err := n.getPredecessor(successor.address)
 	if err != nil {
 		log.Println(err.Error())
@@ -84,7 +89,9 @@ func (n *Node) stabilize() {
 	}
 
 	if (equals(successor.id, n.id) && !equals(pred.id, n.id)) || between(pred.id, n.id, successor.id) {
-		n.successorsPushFront(pred)
+		n.sucLock.Lock()
+		n.successors.SetIndex(0, pred)
+		n.sucLock.Unlock()
 		n.notify(pred.address)
 	} else {
 		if !equals(n.id, successor.id) {
@@ -96,7 +103,9 @@ func (n *Node) stabilize() {
 }
 
 func (n *Node) checkSuccessor() {
-	successor := n.successorsFront()
+	n.sucLock.RLock()
+	successor := n.successors.GetIndex(0)
+	n.sucLock.RUnlock()
 
 	if equals(successor.id, n.id) {
 		return
@@ -118,14 +127,27 @@ func (n *Node) checkSuccessor() {
 
 	log.Printf("Successor %s has failed\n", successor.address)
 
-	n.successorsPopFront()
-	if !equals(n.successorsFront().id, n.id) {
-		n.failSuccessorStorage()
+	n.sucLock.Lock()
+	n.successors.RemoveIndex(0)
+	n.sucLock.Unlock()
+
+	n.sucLock.RLock()
+	len := n.successors.Len()
+	n.sucLock.RUnlock()
+
+	if len == 0 {
+		n.sucLock.Lock()
+		n.successors.SetIndex(0, n)
+		n.sucLock.Unlock()
+	} else {
+
 	}
 }
 
 func (n *Node) checkPredecessor() {
-	predecessor := n.getPredecessorProp()
+	n.predLock.RLock()
+	predecessor := n.predecessors.GetIndex(0)
+	n.predLock.RUnlock()
 
 	if equals(n.id, predecessor.id) {
 		return
@@ -146,51 +168,65 @@ func (n *Node) checkPredecessor() {
 	}
 
 	log.Printf("Predecessor %s has failed\n", predecessor.address)
-	n.setPredecessorProp(n)
-	n.failPredecessorStorage(predecessor.id)
+
+	n.predLock.Lock()
+	n.predecessors.RemoveIndex(0)
+	n.predLock.Unlock()
+
+	n.predLock.RLock()
+	len := n.predecessors.Len()
+	n.predLock.RUnlock()
+
+	if len == 0 {
+		n.predLock.Lock()
+		n.predecessors.SetIndex(0, n)
+		n.predLock.Unlock()
+	} else {
+
+	}
 }
 
 func (n *Node) fixSuccessors() {
-	successorsLen := n.successorsLen()
+	// successorsLen := n.successorsLen()
 
-	last := n.successorsBack()
+	// last := n.successorsBack()
 
-	if equals(last.id, n.id) {
-		if successorsLen != 1 {
-			n.successorsPopBack()
-		} else {
-			return
-		}
-	}
+	// if equals(last.id, n.id) {
+	// 	if successorsLen != 1 {
+	// 		n.successorsPopBack()
+	// 	} else {
+	// 		return
+	// 	}
+	// }
 
-	if successorsLen == n.config.SuccessorsSize {
-		return
-	}
+	// if successorsLen == n.config.SuccessorsSize {
+	// 	return
+	// }
 
-	connection, err := NewGRPConnection(last.address)
-	if err != nil {
-		log.Println(err.Error())
-		return
-	}
-	defer connection.close()
+	// connection, err := NewGRPConnection(last.address)
+	// if err != nil {
+	// 	log.Println(err.Error())
+	// 	return
+	// }
+	// defer connection.close()
 
-	res, err := connection.client.GetSuccessor(connection.ctx, &pb.EmptyRequest{})
-	if err != nil {
-		n.successorsPopBack()
-		if successorsLen == 1 {
-			n.successorsPushBack(n)
-		}
+	// res, err := connection.client.GetSuccessor(connection.ctx, &pb.EmptyRequest{})
+	// if err != nil {
+	// 	n.successorsPopBack()
+	// 	if successorsLen == 1 {
+	// 		n.successorsPushBack(n)
+	// 	}
 
-		log.Println(err.Error())
-		return
-	}
+	// 	log.Println(err.Error())
+	// 	return
+	// }
 
-	newNode := &Node{id: strToBig(res.Id), address: res.Address}
+	// newNode := &Node{id: strToBig(res.Id), address: res.Address}
 
-	if !equals(newNode.id, n.id) {
-		log.Printf("New successor detected %s\n", res.Address)
-		n.successorsPushBack(newNode)
-	}
+	// if !equals(newNode.id, n.id) {
+	// 	log.Printf("New successor detected %s\n", res.Address)
+	// 	n.successorsPushBack(newNode)
+	// }
 }
 
 func (n *Node) fixFingers(index int) int {
@@ -245,102 +281,107 @@ func (n *Node) hashID(key string) *big.Int {
 }
 
 func (n *Node) setReplicate(key string, value string) error {
-	log.Printf("Set replicate key %s\n", key)
+	// log.Printf("Set replicate key %s\n", key)
 
-	connection, err := NewGRPConnection(n.successorsFront().address)
-	if err != nil {
-		return err
-	}
-	defer connection.close()
+	// connection, err := NewGRPConnection(n.successorsFront().address)
+	// if err != nil {
+	// 	return err
+	// }
+	// defer connection.close()
 
-	_, err = connection.client.Set(connection.ctx, &pb.KeyValueRequest{Key: key, Value: value, Rep: false})
-	if err != nil {
-		return err
-	}
+	// _, err = connection.client.Set(connection.ctx, &pb.KeyValueRequest{Key: key, Value: value, Rep: false})
+	// if err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
 
 func (n *Node) removeReplicate(key string) error {
-	log.Printf("Remove replicate key %s\n", key)
+	// log.Printf("Remove replicate key %s\n", key)
 
-	connection, err := NewGRPConnection(n.successorsFront().address)
-	if err != nil {
-		return err
-	}
-	defer connection.close()
+	// connection, err := NewGRPConnection(n.successorsFront().address)
+	// if err != nil {
+	// 	return err
+	// }
+	// defer connection.close()
 
-	_, err = connection.client.Remove(connection.ctx, &pb.KeyRequest{Key: key, Rep: false})
-	if err != nil {
-		return err
-	}
+	// _, err = connection.client.Remove(connection.ctx, &pb.KeyRequest{Key: key, Rep: false})
+	// if err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
 
 func (n *Node) failPredecessorStorage(predId *big.Int) {
-	log.Println("Absorbe all predecessor data")
+	// log.Println("Absorbe all predecessor data")
 
-	n.dictLock.RLock()
-	dict := n.dictionary.GetAll()
-	n.dictLock.RUnlock()
+	// n.dictLock.RLock()
+	// dict := n.dictionary.GetAll()
+	// n.dictLock.RUnlock()
 
-	newDict := make(map[string]string)
+	// newDict := make(map[string]string)
 
-	n.dictLock.Lock()
-	for key, value := range dict {
-		keyId := n.hashID(key)
-		if between(keyId, predId, n.id) {
-			continue
-		}
+	// n.dictLock.Lock()
+	// for key, value := range dict {
+	// 	keyId := n.hashID(key)
+	// 	if between(keyId, predId, n.id) {
+	// 		continue
+	// 	}
 
-		newDict[key] = value
-	}
-	n.dictLock.Unlock()
+	// 	newDict[key] = value
+	// }
+	// n.dictLock.Unlock()
 
-	connection, err := NewGRPConnection(n.successorsFront().address)
-	if err != nil {
-		log.Println(err.Error())
-		return
-	}
-	defer connection.close()
+	// connection, err := NewGRPConnection(n.successorsFront().address)
+	// if err != nil {
+	// 	log.Println(err.Error())
+	// 	return
+	// }
+	// defer connection.close()
 
-	connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict})
+	// connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict})
 }
 
 func (n *Node) failSuccessorStorage() {
-	log.Println("Replicate all data in new successor")
+	// log.Println("Replicate all data in new successor")
 
-	n.dictLock.RLock()
-	dict := n.dictionary.GetAll()
-	n.dictLock.RUnlock()
+	// n.dictLock.RLock()
+	// dict := n.dictionary.GetAll()
+	// n.dictLock.RUnlock()
 
-	newDict := make(map[string]string)
+	// newDict := make(map[string]string)
 
-	predId := n.getPredecessorProp().id
+	// predId := n.getPredecessorProp().id
 
-	for key, value := range dict {
-		keyId := n.hashID(key)
-		if !between(keyId, predId, n.id) {
-			continue
-		}
+	// for key, value := range dict {
+	// 	keyId := n.hashID(key)
+	// 	if !between(keyId, predId, n.id) {
+	// 		continue
+	// 	}
 
-		newDict[key] = value
-	}
+	// 	newDict[key] = value
+	// }
 
-	connection, err := NewGRPConnection(n.successorsFront().address)
-	if err != nil {
-		log.Println(err.Error())
-		return
-	}
-	defer connection.close()
+	// connection, err := NewGRPConnection(n.successorsFront().address)
+	// if err != nil {
+	// 	log.Println(err.Error())
+	// 	return
+	// }
+	// defer connection.close()
 
-	connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict})
+	// connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict})
 }
 
 func (n *Node) createRing() {
-	n.successorsPushBack(n)
-	n.setPredecessorProp(n)
+	n.predLock.Lock()
+	n.predecessors.SetIndex(0, n)
+	n.predLock.Unlock()
+
+	n.sucLock.Lock()
+	n.successors.SetIndex(0, n)
+	n.sucLock.Unlock()
 }
 
 func (n *Node) createRingOrJoin() {

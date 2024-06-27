@@ -6,8 +6,8 @@ type MyList[T any] struct {
 	capacity int
 }
 
-func NewMyList[T any](capacity int) MyList[T] {
-	return MyList[T]{capacity: capacity, len: 0, list: make([]T, 0)}
+func NewMyList[T any](capacity int) *MyList[T] {
+	return &MyList[T]{capacity: capacity, len: 0, list: make([]T, 0)}
 }
 
 func (q *MyList[T]) GetIndex(index int) T {
@@ -35,5 +35,8 @@ func (q *MyList[T]) RemoveIndex(index int) {
 	copy(newSlice[index:], q.list[index+1:])
 
 	q.list = newSlice
+}
 
+func (q *MyList[T]) Len() int {
+	return q.len
 }
