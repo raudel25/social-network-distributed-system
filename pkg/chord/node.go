@@ -190,10 +190,7 @@ func (n *Node) Set(ctx context.Context, req *pb.KeyValueRequest) (*pb.StatusResp
 	n.sucLock.RUnlock()
 
 	if req.Rep && !equals(suc.id, n.id) {
-		err := n.setReplicate(req.Key, req.Value)
-		if err != nil {
-			return nil, err
-		}
+		go n.setReplicate(req.Key, req.Value)
 	}
 
 	return &pb.StatusResponse{Ok: true}, nil
@@ -231,10 +228,7 @@ func (n *Node) Remove(ctx context.Context, req *pb.KeyRequest) (*pb.StatusRespon
 	n.sucLock.RUnlock()
 
 	if req.Rep && !equals(n.id, suc.id) {
-		err := n.removeReplicate(req.Key)
-		if err != nil {
-			return nil, err
-		}
+		go n.removeReplicate(req.Key)
 	}
 
 	return &pb.StatusResponse{Ok: true}, nil
