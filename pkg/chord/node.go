@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"strconv"
 
 	"sync"
 
@@ -61,24 +62,30 @@ func (n *Node) GetPredecessor(ctx context.Context, req *pb.EmptyRequest) (*pb.No
 	predecessor := n.predecessors.GetIndex(0)
 	n.predLock.RUnlock()
 
-	if predecessor == nil {
-		return nil, fmt.Errorf("not found predecessor")
-	}
-
 	return &pb.NodeResponse{
 		Id:      predecessor.id.String(),
 		Address: predecessor.address,
 	}, nil
 }
 
-func (n *Node) GetSuccessor(ctx context.Context, req *pb.EmptyRequest) (*pb.NodeResponse, error) {
+func (n *Node) GetSuccessorAndNotify(ctx context.Context, req *pb.NodeIndexRequest) (*pb.NodeResponse, error) {
+	newNode := &Node{
+		id:      strToBig(req.Id),
+		address: req.Address,
+	}
+
 	n.sucLock.RLock()
 	successor := n.successors.GetIndex(0)
 	n.sucLock.RUnlock()
 
-	if successor == nil {
-		return nil, fmt.Errorf("not found successor")
+	num, err := strconv.Atoi(req.Index)
+	if err != nil {
+		return nil, err
 	}
+
+	n.predLock.Lock()
+	n.predecessors.SetIndex(num, newNode)
+	n.predLock.Unlock()
 
 	return &pb.NodeResponse{
 		Id:      successor.id.String(),
@@ -284,6 +291,7 @@ func (n *Node) Start(port string) {
 	go n.threadCheckSuccessor()
 	go n.threadFixSuccessors()
 	go n.threadFixFingers()
+	go n.threadFixStorage()
 
 	if port == "5002" {
 		go n.threadTest()

@@ -88,6 +88,21 @@ func (n *Node) threadFixFingers() {
 	}
 }
 
+func (n *Node) threadFixStorage() {
+	log.Println("Fix storage thread started")
+
+	ticker := time.NewTicker(interval * time.Second)
+	for {
+		select {
+		case <-n.shutdown:
+			ticker.Stop()
+			return
+		case <-ticker.C:
+			n.fixStorage()
+		}
+	}
+}
+
 func (n *Node) threadTest() {
 	count := 0
 	ticker := time.NewTicker(2 * interval * time.Second) // Set the time between routine activations.

@@ -2,6 +2,7 @@ package chord
 
 import (
 	"crypto/sha1"
+	"fmt"
 	"log"
 	"math/big"
 
@@ -215,7 +216,7 @@ func (n *Node) fixSuccessors(index int) int {
 	n.sucLock.Lock()
 	defer n.sucLock.Unlock()
 
-	res, err := connection.client.GetSuccessor(connection.ctx, &pb.EmptyRequest{})
+	res, err := connection.client.GetSuccessorAndNotify(connection.ctx, &pb.NodeIndexRequest{Index: fmt.Sprintf("%d", index), Address: n.address, Id: n.id.String()})
 	if err != nil {
 		log.Println(err.Error())
 		n.successors.RemoveIndex(index)
@@ -435,6 +436,50 @@ func (n *Node) failPredecessorStorage(predId *big.Int) {
 	defer connection.close()
 
 	connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict})
+}
+
+func (n *Node) fixStorage() {
+	log.Println("Fixing storage")
+
+	n.predLock.RLock()
+	pred := n.predecessors.GetIndex(n.predecessors.Len() - 1)
+	n.predLock.RUnlock()
+
+	if equals(pred.id, n.id) {
+		return
+	}
+
+	connection, err := NewGRPConnection(pred.address)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	defer connection.close()
+
+	res, err := connection.client.GetPredecessor(connection.ctx, &pb.EmptyRequest{})
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+
+	pred = &Node{address: res.Address, id: strToBig(res.Id)}
+
+	if equals(pred.id, n.id) {
+		return
+	}
+
+	n.dictLock.Lock()
+	dict := n.dictionary.GetAll()
+	defer n.dictLock.Unlock()
+
+	for k := range dict {
+		keyId := n.hashID(k)
+		if between(keyId, pred.id, n.id) {
+			continue
+		}
+
+		n.dictionary.Remove(k)
+	}
 }
 
 func (n *Node) createRing() {
