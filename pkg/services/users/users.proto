@@ -1,0 +1,34 @@
+syntax="proto3";
+
+package services;
+option go_package = "github.com/raudel25/social-network-distributed-system/pkg/services/users;users_pb";
+
+message User{
+    string username = 1;
+    string name = 2;
+    string passwordHash = 3;
+    string email = 4;
+}
+
+message GetUserRequest{
+    string username = 1;
+}
+
+message GetUserResponse{
+    User user = 1;
+}
+
+message EditUserRequest{
+    User user = 1;
+}
+
+
+message EditUserResponse{
+}
+
+service UserService{
+
+    rpc GetUser(GetUserRequest) returns (GetUserResponse){}
+
+    rpc EditUser(EditUserRequest) returns (EditUserResponse){}
+}
