@@ -11,7 +11,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 )
+
+var token string
 
 func main() {
 	rsaPrivateKeyPath := "pv.pem"
@@ -40,16 +43,35 @@ func main() {
 	defer auth_conn.Close()
 	users_client := users_pb.NewUserServiceClient(users_conn)
 
-	testSignUp(auth_client)
-	testLogin(auth_client, "hola", "hashedpassword")
+	password, _ := hashPassword("hashedpassword")
+
+	user1 := &users_pb.User{
+		Username:     "hola",
+		Name:         "Test User",
+		PasswordHash: password,
+		Email:        "testuser@example.com",
+	}
+
+	user2 := &users_pb.User{
+		Username:     "anabel",
+		Name:         "Test User",
+		PasswordHash: password,
+		Email:        "testuser@example.com",
+	}
+
+	testSignUp(auth_client, user1)
+	testSignUp(auth_client, user2)
+	testLogin(auth_client, "anabel", "hashedpassword")
 	testGetUser(users_client)
 	testEditUser(users_client)
-	testGetUser(users_client)
 }
 
 func testGetUser(client users_pb.UserServiceClient) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
+
+	md := metadata.New(map[string]string{"authorization": token})
+	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	response, err := client.GetUser(ctx, &users_pb.GetUserRequest{Username: "hola"})
 	if err != nil {
@@ -62,6 +84,9 @@ func testGetUser(client users_pb.UserServiceClient) {
 func testEditUser(client users_pb.UserServiceClient) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
+
+	md := metadata.New(map[string]string{"authorization": token})
+	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	user := &users_pb.User{
 		Username: "hola",
@@ -80,18 +105,9 @@ func testEditUser(client users_pb.UserServiceClient) {
 	testGetUser(client)
 }
 
-func testSignUp(client auth_pb.AuthClient) {
+func testSignUp(client auth_pb.AuthClient, user *users_pb.User) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-
-	password, _ := hashPassword("hashedpassword")
-
-	user := &users_pb.User{
-		Username:     "hola",
-		Name:         "Test User",
-		PasswordHash: password,
-		Email:        "testuser@example.com",
-	}
 
 	_, err := client.SignUp(ctx, &auth_pb.SignUpRequest{User: user})
 	if err != nil {
@@ -112,7 +128,8 @@ func testLogin(client auth_pb.AuthClient, username, password string) {
 	if err != nil {
 		log.Printf("Error logging in: %v", err)
 	} else {
-		log.Printf("Login successful. Token: %s", response.GetToken())
+		token = response.GetToken()
+		log.Printf("Login successful. Token: %s", token)
 	}
 }
 

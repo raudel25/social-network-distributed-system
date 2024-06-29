@@ -6,6 +6,7 @@ import (
 	"net"
 	"path/filepath"
 
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/raudel25/social-network-distributed-system/pkg/persistency"
 	users_pb "github.com/raudel25/social-network-distributed-system/pkg/services/users"
 	"google.golang.org/grpc"
@@ -30,10 +31,13 @@ func (*UserServer) GetUser(_ context.Context, request *users_pb.GetUserRequest) 
 	return &users_pb.GetUserResponse{User: user}, nil
 }
 
-func (*UserServer) EditUser(_ context.Context, request *users_pb.EditUserRequest) (*users_pb.EditUserResponse, error) {
-	user := request.GetUser()
-	err := persistency.Save(node, user, filepath.Join("User", user.Username))
+func (s *UserServer) EditUser(ctx context.Context, request *users_pb.EditUserRequest) (*users_pb.EditUserResponse, error) {
 
+	if err := checkPermission(ctx, request.GetUser().Username); err != nil {
+		return nil, err
+	}
+
+	err := persistency.Save(node, request.GetUser(), filepath.Join("User", request.GetUser().Username))
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +54,19 @@ func StartUserService(network string, address string) {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
-	s := grpc.NewServer()
+	s := grpc.NewServer(
+		grpc.UnaryInterceptor(
+			grpc_middleware.ChainUnaryServer(
+				UnaryLoggingInterceptor,
+				UnaryServerInterceptor,
+			),
+		), grpc.StreamInterceptor(
+			grpc_middleware.ChainStreamServer(
+				StreamLoggingInterceptor,
+				StreamServerInterceptor,
+			),
+		),
+	)
 
 	users_pb.RegisterUserServiceServer(s, &UserServer{})
 
