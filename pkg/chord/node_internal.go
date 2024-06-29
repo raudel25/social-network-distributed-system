@@ -29,7 +29,9 @@ func (n *Node) findSuccessor(id *big.Int) (*Node, error) {
 	findNode := n.closestFinger(id)
 
 	if equals(findNode.id, n.id) {
-		return n.successorsFront(), nil
+		n.sucLock.RLock()
+		defer n.sucLock.RUnlock()
+		return n.predecessors.GetIndex(0), nil
 	}
 
 	connection, err := NewGRPConnection(findNode.address)
@@ -77,7 +79,10 @@ func (n *Node) notify(address string) {
 func (n *Node) stabilize() {
 	log.Println("Stabilizing node")
 
-	successor := n.successorsFront()
+	n.sucLock.RLock()
+	successor := n.successors.GetIndex(0)
+	n.sucLock.RUnlock()
+
 	pred, err := n.getPredecessor(successor.address)
 	if err != nil {
 		log.Println(err.Error())
@@ -85,8 +90,11 @@ func (n *Node) stabilize() {
 	}
 
 	if (equals(successor.id, n.id) && !equals(pred.id, n.id)) || between(pred.id, n.id, successor.id) {
-		n.successorsPushFront(pred)
+		n.sucLock.Lock()
+		n.successors.SetIndex(0, pred)
+		n.sucLock.Unlock()
 		n.notify(pred.address)
+		n.replicateAllData(pred)
 	} else {
 		if !equals(n.id, successor.id) {
 			n.notify(successor.address)
@@ -97,7 +105,9 @@ func (n *Node) stabilize() {
 }
 
 func (n *Node) checkSuccessor() {
-	successor := n.successorsFront()
+	n.sucLock.RLock()
+	successor := n.successors.GetIndex(0)
+	n.sucLock.RUnlock()
 
 	if equals(successor.id, n.id) {
 		return
@@ -119,16 +129,25 @@ func (n *Node) checkSuccessor() {
 
 	log.Printf("Successor %s has failed\n", successor.address)
 
-	n.successorsPopFront()
-	if n.successorsLen() == 0 {
-		n.successorsPushBack(n)
-		return
+	n.sucLock.Lock()
+	n.successors.RemoveIndex(0)
+	n.sucLock.Unlock()
+
+	n.sucLock.RLock()
+	len := n.successors.Len()
+	n.sucLock.RUnlock()
+
+	if len == 0 {
+		n.sucLock.Lock()
+		n.successors.SetIndex(0, n)
+		n.sucLock.Unlock()
 	}
-	n.failSuccessorStorage()
 }
 
 func (n *Node) checkPredecessor() {
-	predecessor := n.getPredecessorProp()
+	n.predLock.RLock()
+	predecessor := n.predecessors.GetIndex(0)
+	n.predLock.RUnlock()
 
 	if equals(n.id, predecessor.id) {
 		return
@@ -149,51 +168,95 @@ func (n *Node) checkPredecessor() {
 	}
 
 	log.Printf("Predecessor %s has failed\n", predecessor.address)
-	n.setPredecessorProp(n)
-	n.failPredecessorStorage()
+
+	n.predLock.Lock()
+	n.predecessors.RemoveIndex(0)
+	n.predLock.Unlock()
+
+	n.predLock.RLock()
+	len := n.predecessors.Len()
+	n.predLock.RUnlock()
+
+	if len == 0 {
+		n.predLock.Lock()
+		n.predecessors.SetIndex(0, n)
+		n.predLock.Unlock()
+	}
+
+	n.failPredecessorStorage(predecessor.id)
 }
 
-func (n *Node) fixSuccessors() {
-	successorsLen := n.successorsLen()
+func (n *Node) fixSuccessors(index int) int {
+	log.Println("Fix successors")
 
-	last := n.successorsBack()
+	n.sucLock.RLock()
+	suc := n.successors.GetIndex(index)
+	len := n.successors.Len()
+	last := n.successors.GetIndex(len - 1)
+	n.sucLock.RUnlock()
 
-	if equals(last.id, n.id) {
-		if successorsLen != 1 {
-			n.successorsPopBack()
-		} else {
-			return
-		}
+	if suc.id == n.id && len == 1 {
+		return 0
 	}
 
-	if successorsLen == n.config.SuccessorsSize {
-		return
+	if len != 1 && equals(last.id, n.id) {
+		n.sucLock.Lock()
+		n.successors.RemoveIndex(len - 1)
+		n.sucLock.Unlock()
+		len--
 	}
 
-	connection, err := NewGRPConnection(last.address)
+	connection, err := NewGRPConnection(suc.address)
 	if err != nil {
 		log.Println(err.Error())
-		return
+		return 0
 	}
 	defer connection.close()
 
-	res, err := connection.client.GetSuccessor(connection.ctx, &pb.EmptyRequest{})
+	n.sucLock.Lock()
+	defer n.sucLock.Unlock()
+
+	res, err := connection.client.GetSuccessorAndNotify(connection.ctx, &pb.NodeIndexRequest{Index: fmt.Sprintf("%d", index), Address: n.address, Id: n.id.String()})
 	if err != nil {
-		n.successorsPopBack()
-		if successorsLen == 1 {
-			n.successorsPushBack(n)
+		log.Println(err.Error())
+		n.successors.RemoveIndex(index)
+		if n.successors.Len() == 0 {
+			n.successors.SetIndex(0, n)
+		}
+		return index % n.successors.Len()
+	}
+
+	sucRes := &Node{address: res.Address, id: strToBig(res.Id)}
+
+	if equals(sucRes.id, n.id) || index == n.config.SuccessorsSize-1 {
+		return 0
+	}
+
+	if index == len-1 {
+		n.successors.SetIndex(index+1, sucRes)
+		n.replicateAllData(sucRes)
+		return (index + 1) % n.successors.Len()
+	}
+
+	sucSuc := n.successors.GetIndex(index + 1)
+
+	if !equals(sucRes.id, sucSuc.id) {
+		n.successors.SetIndex(index+1, sucRes)
+
+		find := false
+
+		for i := 0; i < n.successors.Len(); i++ {
+			if equals(sucRes.id, n.successors.GetIndex(i).id) {
+				find = true
+			}
 		}
 
-		log.Println(err.Error())
-		return
+		if !find {
+			n.replicateAllData(sucRes)
+		}
 	}
 
-	newNode := &Node{id: strToBig(res.Id), address: res.Address}
-
-	if !equals(newNode.id, n.id) {
-		log.Printf("New successor detected %s\n", res.Address)
-		n.successorsPushBack(newNode)
-	}
+	return (index + 1) % n.successors.Len()
 }
 
 func (n *Node) fixFingers(index int) int {
@@ -247,16 +310,31 @@ func (n *Node) hashID(key string) *big.Int {
 	return id
 }
 
-func (n *Node) setReplicate(key string, value string) error {
+func (n *Node) setReplicate(key string, value string) {
 	log.Printf("Set replicate key %s\n", key)
 
-	connection, err := NewGRPConnection(n.successorsFront().address)
+	n.sucLock.RLock()
+	successors := n.successors
+	defer n.sucLock.RUnlock()
+
+	for i := 0; i < successors.Len(); i++ {
+		err := n.setReplicateNode(successors.GetIndex(i), key, value)
+		if err != nil {
+			log.Println(err.Error())
+		}
+	}
+}
+
+func (n *Node) setReplicateNode(node *Node, key string, value string) error {
+	log.Printf("Set replicate key %s in %s\n", key, node.address)
+
+	connection, err := NewGRPConnection(node.address)
 	if err != nil {
 		return err
 	}
 	defer connection.close()
 
-	_, err = connection.client.Set(connection.ctx, &pb.KeyValueRequest{Key: fmt.Sprintf("rep:%s", key[4:]), Value: value, Rep: false})
+	_, err = connection.client.Set(connection.ctx, &pb.KeyValueRequest{Key: key, Value: value, Rep: false})
 	if err != nil {
 		return err
 	}
@@ -264,16 +342,31 @@ func (n *Node) setReplicate(key string, value string) error {
 	return nil
 }
 
-func (n *Node) removeReplicate(key string) error {
+func (n *Node) removeReplicate(key string) {
 	log.Printf("Remove replicate key %s\n", key)
 
-	connection, err := NewGRPConnection(n.successorsFront().address)
+	n.sucLock.RLock()
+	successors := n.successors
+	defer n.sucLock.RUnlock()
+
+	for i := 0; i < successors.Len(); i++ {
+		err := n.removeReplicateNode(successors.GetIndex(i), key)
+		if err != nil {
+			log.Println(err.Error())
+		}
+	}
+}
+
+func (n *Node) removeReplicateNode(node *Node, key string) error {
+	log.Printf("Remove replicate key %s in %s\n", key, n.address)
+
+	connection, err := NewGRPConnection(node.address)
 	if err != nil {
 		return err
 	}
 	defer connection.close()
 
-	_, err = connection.client.Remove(connection.ctx, &pb.KeyRequest{Key: fmt.Sprintf("rep:%s", key[4:]), Rep: false})
+	_, err = connection.client.Remove(connection.ctx, &pb.KeyRequest{Key: key, Rep: false})
 	if err != nil {
 		return err
 	}
@@ -281,7 +374,38 @@ func (n *Node) removeReplicate(key string) error {
 	return nil
 }
 
-func (n *Node) failPredecessorStorage() {
+func (n *Node) replicateAllData(node *Node) {
+	log.Printf("Replicate all data in %s\n", node.address)
+
+	n.dictLock.RLock()
+	dict := n.dictionary.GetAll()
+	n.dictLock.RUnlock()
+
+	n.predLock.RLock()
+	pred := n.predecessors.GetIndex(0)
+	n.predLock.RUnlock()
+
+	newDict := make(map[string]string)
+
+	for k, v := range dict {
+		keyId := n.hashID(k)
+
+		if between(keyId, pred.id, n.id) {
+			newDict[k] = v
+		}
+	}
+
+	connection, err := NewGRPConnection(node.address)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	defer connection.close()
+
+	connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict})
+}
+
+func (n *Node) failPredecessorStorage(predId *big.Int) {
 	log.Println("Absorbe all predecessor data")
 
 	n.dictLock.RLock()
@@ -292,17 +416,19 @@ func (n *Node) failPredecessorStorage() {
 
 	n.dictLock.Lock()
 	for key, value := range dict {
-		if keyType(key) != "rep" {
+		keyId := n.hashID(key)
+		if between(keyId, predId, n.id) {
 			continue
 		}
 
-		n.dictionary.Remove(key)
-		n.dictionary.Set(fmt.Sprintf("key:%s", key[4:]), value)
-		newDict[fmt.Sprintf("key:%s", key[4:])] = value
+		newDict[key] = value
 	}
 	n.dictLock.Unlock()
 
-	connection, err := NewGRPConnection(n.successorsFront().address)
+	n.sucLock.RLock()
+	defer n.sucLock.RUnlock()
+
+	connection, err := NewGRPConnection(n.successors.GetIndex(n.successors.Len() - 1).address)
 	if err != nil {
 		log.Println(err.Error())
 		return
@@ -312,24 +438,35 @@ func (n *Node) failPredecessorStorage() {
 	connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict})
 }
 
-func (n *Node) failSuccessorStorage() {
-	log.Println("Replicate all data in new successor")
+func (n *Node) newPredecessorStorage() {
+	log.Println("Delegate predecessor data")
 
 	n.dictLock.RLock()
 	dict := n.dictionary.GetAll()
 	n.dictLock.RUnlock()
 
+	n.predLock.RLock()
+	pred := n.predecessors.GetIndex(0)
+	var predPred *Node
+	if n.predecessors.Len() >= 2 {
+		predPred = n.predecessors.GetIndex(1)
+	} else {
+		predPred = n
+	}
+	n.predLock.RUnlock()
+
 	newDict := make(map[string]string)
 
 	for key, value := range dict {
-		if keyType(key) != "key" {
+		keyId := n.hashID(key)
+		if !between(keyId, predPred.id, pred.id) {
 			continue
 		}
 
-		newDict[fmt.Sprintf("rep:%s", key[4:])] = value
+		newDict[key] = value
 	}
 
-	connection, err := NewGRPConnection(n.successorsFront().address)
+	connection, err := NewGRPConnection(pred.address)
 	if err != nil {
 		log.Println(err.Error())
 		return
@@ -339,9 +476,58 @@ func (n *Node) failSuccessorStorage() {
 	connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict})
 }
 
+func (n *Node) fixStorage() {
+	log.Println("Fixing storage")
+
+	n.predLock.RLock()
+	pred := n.predecessors.GetIndex(n.predecessors.Len() - 1)
+	n.predLock.RUnlock()
+
+	if equals(pred.id, n.id) {
+		return
+	}
+
+	connection, err := NewGRPConnection(pred.address)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	defer connection.close()
+
+	res, err := connection.client.GetPredecessor(connection.ctx, &pb.EmptyRequest{})
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+
+	pred = &Node{address: res.Address, id: strToBig(res.Id)}
+
+	if equals(pred.id, n.id) {
+		return
+	}
+
+	n.dictLock.Lock()
+	dict := n.dictionary.GetAll()
+	defer n.dictLock.Unlock()
+
+	for k := range dict {
+		keyId := n.hashID(k)
+		if between(keyId, pred.id, n.id) {
+			continue
+		}
+
+		n.dictionary.Remove(k)
+	}
+}
+
 func (n *Node) createRing() {
-	n.successorsPushBack(n)
-	n.setPredecessorProp(n)
+	n.predLock.Lock()
+	n.predecessors.SetIndex(0, n)
+	n.predLock.Unlock()
+
+	n.sucLock.Lock()
+	n.successors.SetIndex(0, n)
+	n.sucLock.Unlock()
 }
 
 func (n *Node) createRingOrJoin() {

@@ -59,6 +59,7 @@ func (n *Node) threadCheckSuccessor() {
 func (n *Node) threadFixSuccessors() {
 	log.Println("Check fix successors thread started")
 
+	next := 0 // Index of the actual successor to fix.
 	ticker := time.NewTicker(interval * time.Second)
 	for {
 		select {
@@ -66,7 +67,7 @@ func (n *Node) threadFixSuccessors() {
 			ticker.Stop()
 			return
 		case <-ticker.C:
-			n.fixSuccessors()
+			next = n.fixSuccessors(next)
 		}
 	}
 }
@@ -83,6 +84,21 @@ func (n *Node) threadFixFingers() {
 			return
 		case <-ticker.C: // If it's time, fix the correspondent finger table entry.
 			next = n.fixFingers(next)
+		}
+	}
+}
+
+func (n *Node) threadFixStorage() {
+	log.Println("Fix storage thread started")
+
+	ticker := time.NewTicker(interval * time.Second)
+	for {
+		select {
+		case <-n.shutdown:
+			ticker.Stop()
+			return
+		case <-ticker.C:
+			n.fixStorage()
 		}
 	}
 }

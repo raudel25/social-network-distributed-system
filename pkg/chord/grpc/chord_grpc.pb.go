@@ -19,15 +19,15 @@ import (
 const _ = grpc.SupportPackageIsVersion8
 
 const (
-	Chord_FindSuccessor_FullMethodName  = "/chord.Chord/FindSuccessor"
-	Chord_GetPredecessor_FullMethodName = "/chord.Chord/GetPredecessor"
-	Chord_GetSuccessor_FullMethodName   = "/chord.Chord/GetSuccessor"
-	Chord_Notify_FullMethodName         = "/chord.Chord/Notify"
-	Chord_Ping_FullMethodName           = "/chord.Chord/Ping"
-	Chord_Get_FullMethodName            = "/chord.Chord/Get"
-	Chord_Set_FullMethodName            = "/chord.Chord/Set"
-	Chord_SetPartition_FullMethodName   = "/chord.Chord/SetPartition"
-	Chord_Remove_FullMethodName         = "/chord.Chord/Remove"
+	Chord_FindSuccessor_FullMethodName         = "/chord.Chord/FindSuccessor"
+	Chord_GetPredecessor_FullMethodName        = "/chord.Chord/GetPredecessor"
+	Chord_GetSuccessorAndNotify_FullMethodName = "/chord.Chord/GetSuccessorAndNotify"
+	Chord_Notify_FullMethodName                = "/chord.Chord/Notify"
+	Chord_Ping_FullMethodName                  = "/chord.Chord/Ping"
+	Chord_Get_FullMethodName                   = "/chord.Chord/Get"
+	Chord_Set_FullMethodName                   = "/chord.Chord/Set"
+	Chord_SetPartition_FullMethodName          = "/chord.Chord/SetPartition"
+	Chord_Remove_FullMethodName                = "/chord.Chord/Remove"
 )
 
 // ChordClient is the client API for Chord service.
@@ -36,7 +36,7 @@ const (
 type ChordClient interface {
 	FindSuccessor(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*NodeResponse, error)
 	GetPredecessor(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*NodeResponse, error)
-	GetSuccessor(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*NodeResponse, error)
+	GetSuccessorAndNotify(ctx context.Context, in *NodeIndexRequest, opts ...grpc.CallOption) (*NodeResponse, error)
 	Notify(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 	Ping(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 	Get(ctx context.Context, in *KeyRequest, opts ...grpc.CallOption) (*StatusValueResponse, error)
@@ -73,10 +73,10 @@ func (c *chordClient) GetPredecessor(ctx context.Context, in *EmptyRequest, opts
 	return out, nil
 }
 
-func (c *chordClient) GetSuccessor(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*NodeResponse, error) {
+func (c *chordClient) GetSuccessorAndNotify(ctx context.Context, in *NodeIndexRequest, opts ...grpc.CallOption) (*NodeResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(NodeResponse)
-	err := c.cc.Invoke(ctx, Chord_GetSuccessor_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Chord_GetSuccessorAndNotify_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +149,7 @@ func (c *chordClient) Remove(ctx context.Context, in *KeyRequest, opts ...grpc.C
 type ChordServer interface {
 	FindSuccessor(context.Context, *IdRequest) (*NodeResponse, error)
 	GetPredecessor(context.Context, *EmptyRequest) (*NodeResponse, error)
-	GetSuccessor(context.Context, *EmptyRequest) (*NodeResponse, error)
+	GetSuccessorAndNotify(context.Context, *NodeIndexRequest) (*NodeResponse, error)
 	Notify(context.Context, *NodeRequest) (*StatusResponse, error)
 	Ping(context.Context, *EmptyRequest) (*StatusResponse, error)
 	Get(context.Context, *KeyRequest) (*StatusValueResponse, error)
@@ -169,8 +169,8 @@ func (UnimplementedChordServer) FindSuccessor(context.Context, *IdRequest) (*Nod
 func (UnimplementedChordServer) GetPredecessor(context.Context, *EmptyRequest) (*NodeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPredecessor not implemented")
 }
-func (UnimplementedChordServer) GetSuccessor(context.Context, *EmptyRequest) (*NodeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetSuccessor not implemented")
+func (UnimplementedChordServer) GetSuccessorAndNotify(context.Context, *NodeIndexRequest) (*NodeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSuccessorAndNotify not implemented")
 }
 func (UnimplementedChordServer) Notify(context.Context, *NodeRequest) (*StatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Notify not implemented")
@@ -239,20 +239,20 @@ func _Chord_GetPredecessor_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Chord_GetSuccessor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EmptyRequest)
+func _Chord_GetSuccessorAndNotify_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NodeIndexRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ChordServer).GetSuccessor(ctx, in)
+		return srv.(ChordServer).GetSuccessorAndNotify(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Chord_GetSuccessor_FullMethodName,
+		FullMethod: Chord_GetSuccessorAndNotify_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChordServer).GetSuccessor(ctx, req.(*EmptyRequest))
+		return srv.(ChordServer).GetSuccessorAndNotify(ctx, req.(*NodeIndexRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -381,8 +381,8 @@ var Chord_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Chord_GetPredecessor_Handler,
 		},
 		{
-			MethodName: "GetSuccessor",
-			Handler:    _Chord_GetSuccessor_Handler,
+			MethodName: "GetSuccessorAndNotify",
+			Handler:    _Chord_GetSuccessorAndNotify_Handler,
 		},
 		{
 			MethodName: "Notify",
