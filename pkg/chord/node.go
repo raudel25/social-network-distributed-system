@@ -84,7 +84,9 @@ func (n *Node) GetSuccessorAndNotify(ctx context.Context, req *pb.NodeIndexReque
 	}
 
 	n.predLock.Lock()
-	n.predecessors.SetIndex(num, newNode)
+	if n.predecessors.Len() < num || !equals(n.predecessors.GetIndex(num).id, newNode.id) {
+		n.predecessors.SetIndex(num, newNode)
+	}
 	n.predLock.Unlock()
 
 	return &pb.NodeResponse{
@@ -105,8 +107,13 @@ func (n *Node) Notify(ctx context.Context, req *pb.NodeRequest) (*pb.StatusRespo
 
 	if equals(predecessor.id, n.id) || between(newNode.id, predecessor.id, n.id) {
 		n.predLock.Lock()
+		if equals(n.predecessors.GetIndex(0).id, n.id) {
+			n.predecessors.RemoveIndex(0)
+		}
 		n.predecessors.SetIndex(0, newNode)
 		n.predLock.Unlock()
+
+		n.newPredecessorStorage()
 	}
 
 	return &pb.StatusResponse{Ok: true}, nil

@@ -438,6 +438,44 @@ func (n *Node) failPredecessorStorage(predId *big.Int) {
 	connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict})
 }
 
+func (n *Node) newPredecessorStorage() {
+	log.Println("Delegate predecessor data")
+
+	n.dictLock.RLock()
+	dict := n.dictionary.GetAll()
+	n.dictLock.RUnlock()
+
+	n.predLock.RLock()
+	pred := n.predecessors.GetIndex(0)
+	var predPred *Node
+	if n.predecessors.Len() >= 2 {
+		predPred = n.predecessors.GetIndex(1)
+	} else {
+		predPred = n
+	}
+	n.predLock.RUnlock()
+
+	newDict := make(map[string]string)
+
+	for key, value := range dict {
+		keyId := n.hashID(key)
+		if !between(keyId, predPred.id, pred.id) {
+			continue
+		}
+
+		newDict[key] = value
+	}
+
+	connection, err := NewGRPConnection(pred.address)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	defer connection.close()
+
+	connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict})
+}
+
 func (n *Node) fixStorage() {
 	log.Println("Fixing storage")
 
