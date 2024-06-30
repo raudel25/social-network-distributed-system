@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/raudel25/social-network-distributed-system/pkg/services"
+	socialnetwork "github.com/raudel25/social-network-distributed-system/pkg/services"
 	auth_pb "github.com/raudel25/social-network-distributed-system/pkg/services/auth"
 	users_pb "github.com/raudel25/social-network-distributed-system/pkg/services/users"
 	"golang.org/x/crypto/bcrypt"
@@ -21,7 +21,7 @@ func main() {
 	rsaPublicteKeyPath := "pub.pem"
 	network := "tcp"
 
-	services.Start(rsaPrivateKeyPath, rsaPublicteKeyPath, network)
+	socialnetwork.Start(rsaPrivateKeyPath, rsaPublicteKeyPath, network)
 
 	// Give the service a moment to start
 	time.Sleep(time.Second)

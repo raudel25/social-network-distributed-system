@@ -1,4 +1,4 @@
-package services
+package socialnetwork
 
 import (
 	"crypto/rsa"
@@ -30,7 +30,7 @@ func loadPublicKey(path string) (*rsa.PublicKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	publicKey, err := jwt.ParseRSAPublicKeyFromPEM(key)
 	if err != nil {
 		return nil, err

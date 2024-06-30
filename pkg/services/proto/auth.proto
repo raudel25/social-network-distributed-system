@@ -1,9 +1,14 @@
 syntax="proto3";
 
-package services;
+package socialnetwork;
 option go_package = "github.com/raudel25/social-network-distributed-system/pkg/services/auth;services_pb";
 
-import "pkg/services/users/users.proto";
+import "pkg/services/proto/users.proto";
+
+service Auth {
+  rpc Login (LoginRequest) returns (LoginResponse);
+  rpc SignUp (SignUpRequest) returns (SignUpResponse);
+}
 
 message LoginRequest {
   string username = 1;
@@ -19,9 +24,4 @@ message SignUpRequest{
 }
 
 message SignUpResponse{
-}
-
-service Auth {
-  rpc Login (LoginRequest) returns (LoginResponse);
-  rpc SignUp (SignUpRequest) returns (SignUpResponse);
 }

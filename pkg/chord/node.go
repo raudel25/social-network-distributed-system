@@ -192,8 +192,6 @@ func (n *Node) GetKey(key string) (*string, error) {
 		return &res.Value, nil
 	}
 
-	log.Println("key %s\n not found", key)
-
 	return nil, os.ErrNotExist
 }
 

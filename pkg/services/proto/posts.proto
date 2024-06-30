@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package socialnetwork;
+
+service PostService {
+  rpc CreatePost (CreatePostRequest) returns (CreatePostResponse);
+  
+  rpc GetPost (GetPostRequest) returns (GetPostResponse);
+  
+  rpc Repost (RepostRequest) returns (RepostResponse);
+
+  rpc GetUserPosts (GetUserPostsRequest) returns (GetUserPostsResponse);
+}
+
+message Post {
+  string id = 1;
+  string user_id = 2;
+  string content = 3;
+  string original_post_id = 4; // This field is set if the post is a repost
+  int64 timestamp = 5;
+}
+
+message CreatePostRequest {
+  string user_id = 1;
+  string content = 2;
+}
+
+message CreatePostResponse {
+  Post post = 1;
+}
+
+message GetPostRequest {
+  string post_id = 1;
+}
+
+message GetPostResponse {
+  Post post = 1;
+}
+
+message RepostRequest {
+  string user_id = 1;
+  string original_post_id = 2;
+}
+
+message RepostResponse {
+  Post post = 1;
+}
+
+message GetUserPostsRequest {
+  string user_id = 1;
+}
+
+message GetUserPostsResponse {
+  repeated Post posts = 1;
+}

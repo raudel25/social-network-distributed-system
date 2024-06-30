@@ -1,4 +1,4 @@
-package services
+package socialnetwork;
 
 import (
 	"github.com/raudel25/social-network-distributed-system/pkg/chord"
