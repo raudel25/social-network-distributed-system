@@ -1,7 +1,7 @@
 syntax="proto3";
 
 package socialnetwork;
-option go_package = "github.com/raudel25/social-network-distributed-system/pkg/services/auth;services_pb";
+option go_package = "../grpc_auth;auth_pb";
 
 import "pkg/services/proto/users.proto";
 

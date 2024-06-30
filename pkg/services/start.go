@@ -1,4 +1,4 @@
-package socialnetwork;
+package socialnetwork
 
 import (
 	"github.com/raudel25/social-network-distributed-system/pkg/chord"
@@ -17,4 +17,5 @@ func Start(rsaPrivateKeyPath string, rsaPublicteKeyPath string, network string) 
 	node.Start("50050")
 	go StartUserService(network, "0.0.0.0:50051")
 	go StartAuthServer(network, "0.0.0.0:50052")
+	go StartPostsService(network, "0.0.0.0:50053")
 }

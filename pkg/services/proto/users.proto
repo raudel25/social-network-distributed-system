@@ -1,7 +1,7 @@
 syntax="proto3";
 
 package socialnetwork;
-option go_package = "github.com/raudel25/social-network-distributed-system/pkg/services/users;users_pb";
+option go_package = "../grpc_users;users_pb";
 
 service UserService{
     // Get a user

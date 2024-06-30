@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 package socialnetwork;
+option go_package = "../grpc_posts;posts_pb";
 
 service PostService {
     // Create a new post
@@ -14,10 +15,10 @@ service PostService {
     
     // Get all posts for a specific user
     rpc GetUserPosts (GetUserPostsRequest) returns (GetUserPostsResponse);
-  }
+}
 
 message Post {
-  string id = 1;
+  string post_id = 1;
   string user_id = 2;
   string content = 3;
   string original_post_id = 4; // This field is set if the post is a repost
@@ -56,4 +57,9 @@ message GetUserPostsRequest {
 
 message GetUserPostsResponse {
   repeated Post posts = 1;
+}
+
+message UserPosts {
+    string user_id = 1;
+    repeated string postsIds = 2;
 }

@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 package socialnetwork;
+option go_package = "../grpc_follow;follow_pb";
 
 service FollowService {
   // Follow a user
