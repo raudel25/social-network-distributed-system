@@ -7,6 +7,7 @@ import (
 
 	socialnetwork "github.com/raudel25/social-network-distributed-system/pkg/services"
 	auth_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_auth"
+	db_models_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_db"
 	users_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_users"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
@@ -45,20 +46,20 @@ func main() {
 
 	password, _ := hashPassword("hashedpassword")
 
-	user1 := &users_pb.User{
+	user1 := &db_models_pb.User{
 		Username:     "hola",
 		Name:         "Test User",
 		PasswordHash: password,
 		Email:        "testuser@example.com",
 	}
 
-	user2 := &users_pb.User{
+	user2 := &db_models_pb.User{
 		Username:     "anabel",
 		Name:         "Test User",
 		PasswordHash: password,
 		Email:        "testuser@example.com",
 	}
-	editedUser1 := &users_pb.User{
+	editedUser1 := &db_models_pb.User{
 		Username: "hola",
 		Name:     "Anabel Benítez",
 		Email:    "testuser@example.com",
@@ -86,7 +87,7 @@ func testGetUser(client users_pb.UserServiceClient, username string) {
 	}
 }
 
-func testEditUser(client users_pb.UserServiceClient, user *users_pb.User) {
+func testEditUser(client users_pb.UserServiceClient, user *db_models_pb.User) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
@@ -103,7 +104,7 @@ func testEditUser(client users_pb.UserServiceClient, user *users_pb.User) {
 	testGetUser(client, user.Username)
 }
 
-func testSignUp(client auth_pb.AuthClient, user *users_pb.User) {
+func testSignUp(client auth_pb.AuthClient, user *db_models_pb.User) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 

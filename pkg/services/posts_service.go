@@ -8,6 +8,7 @@ import (
 	"time"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	db_models_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_db"
 	posts_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_posts"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -45,7 +46,7 @@ func (*PostServer) CreatePost(ctx context.Context, request *posts_pb.CreatePostR
 
 	postID := fmt.Sprintf("%d", time.Now().UnixNano())
 
-	post := &posts_pb.Post{
+	post := &db_models_pb.Post{
 		PostId:    postID,
 		UserId:    request.GetUserId(),
 		Content:   request.GetContent(),
@@ -74,7 +75,7 @@ func (*PostServer) Repost(ctx context.Context, request *posts_pb.RepostRequest) 
 
 	postID := fmt.Sprintf("%d", time.Now().UnixNano())
 
-	post := &posts_pb.Post{
+	post := &db_models_pb.Post{
 		PostId:         postID,
 		UserId:         request.GetUserId(),
 		Timestamp:      time.Now().Unix(),

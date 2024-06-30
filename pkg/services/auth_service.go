@@ -13,7 +13,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	auth_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_auth"
-	users_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_users"
+	db_models_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_db"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -130,7 +130,7 @@ func verifyPassword(hashedPassword, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }
 
-func (server *AuthServer) generateToken(user *users_pb.User) (string, error) {
+func (server *AuthServer) generateToken(user *db_models_pb.User) (string, error) {
 	claims := jwt.MapClaims{
 		"exp":   time.Now().Add(time.Hour * 72).Unix(),
 		"iss":   "auth.service",

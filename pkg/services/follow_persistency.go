@@ -5,8 +5,7 @@ import (
 	"strings"
 
 	"github.com/raudel25/social-network-distributed-system/pkg/persistency"
-	follow_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_follow"
-	users_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_users"
+	grpc_db "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_db"
 	"google.golang.org/grpc/status"
 )
 
@@ -19,7 +18,7 @@ func userInFollowing(username string, followedUsername string) (bool, error) {
 	if !exists {
 		return false, nil
 	}
-	userFollowed, err := persistency.Load(node, path, &follow_pb.UserFollows{})
+	userFollowed, err := persistency.Load(node, path, &grpc_db.UserFollows{})
 	if err != nil {
 		return false, err
 	}
@@ -37,7 +36,7 @@ func userInFollowing(username string, followedUsername string) (bool, error) {
 func follow(username string, otherUsername string) error {
 	path := filepath.Join("User", strings.ToLower(username), "Follow")
 
-	userFollows := &follow_pb.UserFollows{
+	userFollows := &grpc_db.UserFollows{
 		FollowingUserIds: make([]string, 0),
 	}
 
@@ -49,7 +48,7 @@ func follow(username string, otherUsername string) error {
 	}
 
 	if exists {
-		userFollows, err = persistency.Load(node, path, &follow_pb.UserFollows{})
+		userFollows, err = persistency.Load(node, path, &grpc_db.UserFollows{})
 		if err != nil {
 			return err
 		}
@@ -72,12 +71,12 @@ func unfollow(username string, otherUsername string) error {
 		return status.Errorf(404, "User %s following list not found", username)
 	}
 
-	userFollows := &follow_pb.UserFollows{
+	userFollows := &grpc_db.UserFollows{
 		FollowingUserIds: make([]string, 0),
 	}
 
 	if exists {
-		userFollows, err = persistency.Load(node, path, &follow_pb.UserFollows{})
+		userFollows, err = persistency.Load(node, path, &grpc_db.UserFollows{})
 		if err != nil {
 			return err
 		}
@@ -88,11 +87,11 @@ func unfollow(username string, otherUsername string) error {
 			break
 		}
 	}
-	
+
 	return persistency.Save(node, userFollows, path)
 }
 
-func loadUserFollowing(username string) ([]*users_pb.User, error) {
+func loadUserFollowing(username string) ([]*grpc_db.User, error) {
 	path := filepath.Join("User", strings.ToLower(username), "Follow")
 	exists, err := persistency.FileExists(node, path)
 
@@ -100,13 +99,13 @@ func loadUserFollowing(username string) ([]*users_pb.User, error) {
 		return nil, err
 	}
 
-	users := make([]*users_pb.User, 0)
+	users := make([]*grpc_db.User, 0)
 
 	if !exists {
 		return users, nil
 	}
 
-	userFollows, err := persistency.Load(node, path, &follow_pb.UserFollows{})
+	userFollows, err := persistency.Load(node, path, &grpc_db.UserFollows{})
 
 	if err != nil {
 		return nil, err

@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.6.1
-// source: pkg/services/auth/auth.proto
+// source: pkg/services/proto/auth.proto
 
-package services_pb
+package auth_pb
 
 import (
 	context "context"
@@ -22,7 +22,9 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuthClient interface {
+	// Allows a user to log in. Returns an authentication token if the login is successful.
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
+	// Allows a new user to register.
 	SignUp(ctx context.Context, in *SignUpRequest, opts ...grpc.CallOption) (*SignUpResponse, error)
 }
 
@@ -36,7 +38,7 @@ func NewAuthClient(cc grpc.ClientConnInterface) AuthClient {
 
 func (c *authClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error) {
 	out := new(LoginResponse)
-	err := c.cc.Invoke(ctx, "/services.Auth/Login", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/socialnetwork.Auth/Login", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +47,7 @@ func (c *authClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.C
 
 func (c *authClient) SignUp(ctx context.Context, in *SignUpRequest, opts ...grpc.CallOption) (*SignUpResponse, error) {
 	out := new(SignUpResponse)
-	err := c.cc.Invoke(ctx, "/services.Auth/SignUp", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/socialnetwork.Auth/SignUp", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +58,9 @@ func (c *authClient) SignUp(ctx context.Context, in *SignUpRequest, opts ...grpc
 // All implementations must embed UnimplementedAuthServer
 // for forward compatibility
 type AuthServer interface {
+	// Allows a user to log in. Returns an authentication token if the login is successful.
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
+	// Allows a new user to register.
 	SignUp(context.Context, *SignUpRequest) (*SignUpResponse, error)
 	mustEmbedUnimplementedAuthServer()
 }
@@ -94,7 +98,7 @@ func _Auth_Login_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/services.Auth/Login",
+		FullMethod: "/socialnetwork.Auth/Login",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AuthServer).Login(ctx, req.(*LoginRequest))
@@ -112,7 +116,7 @@ func _Auth_SignUp_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/services.Auth/SignUp",
+		FullMethod: "/socialnetwork.Auth/SignUp",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AuthServer).SignUp(ctx, req.(*SignUpRequest))
@@ -124,7 +128,7 @@ func _Auth_SignUp_Handler(srv interface{}, ctx context.Context, dec func(interfa
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Auth_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "services.Auth",
+	ServiceName: "socialnetwork.Auth",
 	HandlerType: (*AuthServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -137,5 +141,5 @@ var Auth_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "pkg/services/auth/auth.proto",
+	Metadata: "pkg/services/proto/auth.proto",
 }

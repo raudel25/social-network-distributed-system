@@ -7,8 +7,8 @@ import (
 
 	socialnetwork "github.com/raudel25/social-network-distributed-system/pkg/services"
 	auth_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_auth"
+	db_models_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_db"
 	posts_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_posts"
-	users_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_users"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -44,7 +44,7 @@ func main() {
 
 	password, _ := hashPassword("hashedpassword")
 
-	user := &users_pb.User{
+	user := &db_models_pb.User{
 		Username:     "anabel",
 		Name:         "Test User",
 		PasswordHash: password,
@@ -62,7 +62,7 @@ func main() {
 	testGetUserPosts(post_cliet, user.Username)                           // [post1, repost1, post2]
 }
 
-func testSignUp(client auth_pb.AuthClient, user *users_pb.User) {
+func testSignUp(client auth_pb.AuthClient, user *db_models_pb.User) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
