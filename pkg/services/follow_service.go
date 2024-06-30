@@ -28,11 +28,15 @@ func (*FollowServer) Follow(ctx context.Context, request *follow_pb.FollowUserRe
 		return nil, status.Errorf(codes.InvalidArgument, "Cannot follow yourself")
 	}
 
-	if !existsUser(username) || !existsUser(targetUsername) {
-		return nil, status.Errorf(codes.NotFound, "User not found")
+	if err := checkUsersExist(username, targetUsername); err != nil {
+		return nil, err
 	}
 
-	if userInFollowing(username, targetUsername) {
+	following, err := userInFollowing(username, targetUsername)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Failed to load following %v", err)
+	}
+	if following {
 		return nil, status.Errorf(codes.AlreadyExists, "Already following user")
 	}
 
@@ -55,11 +59,15 @@ func (*FollowServer) Unfollow(ctx context.Context, request *follow_pb.UnfollowUs
 		return nil, status.Errorf(codes.InvalidArgument, "Cannot unfollow yourself")
 	}
 
-	if !existsUser(username) || !existsUser(targetUsername) {
-		return nil, status.Errorf(codes.NotFound, "User not found")
+	if err := checkUsersExist(username, targetUsername); err != nil {
+		return nil, err
 	}
 
-	if !userInFollowing(username, targetUsername) {
+	following, err := userInFollowing(username, targetUsername)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Failed to load following %v", err)
+	}
+	if !following {
 		return nil, status.Errorf(codes.NotFound, "Not following user")
 	}
 
@@ -73,14 +81,14 @@ func (*FollowServer) Unfollow(ctx context.Context, request *follow_pb.UnfollowUs
 func (*FollowServer) GetFollowing(ctx context.Context, request *follow_pb.GetFollowingRequest) (*follow_pb.GetFollowingResponse, error) {
 	username := request.GetUserId()
 
-	if !existsUser(username) {
-		return nil, status.Errorf(codes.NotFound, "User not found")
+	if err := checkUsersExist(username); err != nil {
+		return nil, err
 	}
 
 	following, err := loadUserFollowing(username)
 
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Failed to load following %v", err)
+		return nil, err
 	}
 
 	return &follow_pb.GetFollowingResponse{Following: following}, nil

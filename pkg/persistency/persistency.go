@@ -98,16 +98,20 @@ func Delete(node *chord.Node, path string) error {
 // Checks if a file exists in the Chord network
 // It takes a Chord node and a file path as input
 // The file is checked in the "resources" directory with the .bin extension
-func FileExists(node *chord.Node, path string) bool {
+func FileExists(node *chord.Node, path string) (bool, error) {
 	fullPath := strings.ToLower(filepath.ToSlash(filepath.Join("resources", path+".bin")))
 
 	log.Printf("Checking if file exists: %s", fullPath)
 
 	// Check if the file exists in the Chord network
-	if _, err := node.GetKey(fullPath); errors.Is(err, os.ErrNotExist) {
-		return false
+	_, err := node.GetKey(fullPath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
+		return false, status.Errorf(codes.Internal, "Couldn't get files")
 	}
 
 	log.Printf("File already exists: %v", fullPath)
-	return true
+	return true, nil
 }

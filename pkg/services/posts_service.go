@@ -21,8 +21,8 @@ type PostServer struct {
 func (*PostServer) GetPost(_ context.Context, request *posts_pb.GetPostRequest) (*posts_pb.GetPostResponse, error) {
 	postId := request.GetPostId()
 
-	if !existsPost(postId) {
-		return nil, status.Errorf(codes.NotFound, "Post %s not found", postId)
+	if err := checkPostsExist(request.PostId); err != nil {
+		return nil, err
 	}
 
 	post, err := loadPost(postId)
@@ -68,8 +68,8 @@ func (*PostServer) Repost(ctx context.Context, request *posts_pb.RepostRequest) 
 		return nil, err
 	}
 
-	if !existsPost(request.OriginalPostId) {
-		return nil, status.Errorf(codes.NotFound, "Post %s not found", request.OriginalPostId)
+	if err := checkPostsExist(request.OriginalPostId); err != nil {
+		return nil, err
 	}
 
 	postID := fmt.Sprintf("%d", time.Now().UnixNano())
@@ -95,8 +95,8 @@ func (*PostServer) Repost(ctx context.Context, request *posts_pb.RepostRequest) 
 func (*PostServer) GetUserPosts(_ context.Context, request *posts_pb.GetUserPostsRequest) (*posts_pb.GetUserPostsResponse, error) {
 	userId := request.GetUserId()
 
-	if !existsUser(userId) {
-		return nil, status.Errorf(codes.NotFound, "User %s not found", userId)
+	if err := checkUsersExist(userId); err != nil {
+		return nil, err
 	}
 
 	posts, err := loadUserPosts(userId)

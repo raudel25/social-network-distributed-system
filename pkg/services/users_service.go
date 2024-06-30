@@ -19,8 +19,8 @@ type UserServer struct {
 func (*UserServer) GetUser(_ context.Context, request *users_pb.GetUserRequest) (*users_pb.GetUserResponse, error) {
 	username := request.GetUsername()
 
-	if !existsUser(username) {
-		return nil, status.Errorf(codes.NotFound, "User %s not found", username)
+	if err := checkUsersExist(username); err != nil {
+		return nil, err
 	}
 
 	user, err := loadUser(username)
@@ -40,12 +40,12 @@ func (s *UserServer) EditUser(ctx context.Context, request *users_pb.EditUserReq
 		return nil, err
 	}
 
-	if !existsUser(username) {
-		return nil, status.Errorf(codes.NotFound, "User %s not found", username)
+	if err := checkUsersExist(username); err != nil {
+		return nil, err
 	}
 
 	if err := saveUser(request.GetUser()); err != nil {
-		return nil,status.Errorf(codes.Internal, "Error saving edited user %s: %v", username, err)
+		return nil, status.Errorf(codes.Internal, "Error saving edited user %s: %v", username, err)
 	}
 
 	return &users_pb.EditUserResponse{}, nil
