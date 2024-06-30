@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package socialnetwork;
+option go_package = "pkg/services/grpc_posts;posts_pb";
+
+import "pkg/services/proto/db_models.proto";
+
+service PostService {
+    // Create a new post
+    rpc CreatePost (CreatePostRequest) returns (CreatePostResponse);
+    
+    // Get a post by its ID
+    rpc GetPost (GetPostRequest) returns (GetPostResponse);
+
+    // Repost an existing post
+    rpc Repost (RepostRequest) returns (RepostResponse);
+
+    // Delete a post by its ID
+    rpc DeletePost (DeletePostRequest) returns (DeletePostResponse);
+    
+    // Get all posts for a specific user
+    rpc GetUserPosts (GetUserPostsRequest) returns (GetUserPostsResponse);
+}
+
+message CreatePostRequest {
+  string user_id = 1;
+  string content = 2;
+}
+
+message CreatePostResponse {
+  Post post = 1;
+}
+
+message GetPostRequest {
+  string post_id = 1;
+}
+
+message GetPostResponse {
+  Post post = 1;
+}
+
+message RepostRequest {
+  string user_id = 1;
+  string original_post_id = 2;
+}
+
+message RepostResponse {
+  Post post = 1;
+}
+
+message GetUserPostsRequest {
+  string user_id = 1;
+}
+
+message GetUserPostsResponse {
+  repeated Post posts = 1;
+}
+
+message DeletePostRequest {
+  string post_id = 1;
+}
+
+message DeletePostResponse {
+}

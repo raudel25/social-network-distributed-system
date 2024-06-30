@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package socialnetwork;
+option go_package = "pkg/services/grpc_follow;follow_pb";
+
+import "pkg/services/proto/db_models.proto";
+
+service FollowService {
+  // Follow a user
+  rpc FollowUser (FollowUserRequest) returns (FollowUserResponse);
+  
+  // Unfollow a user
+  rpc UnfollowUser (UnfollowUserRequest) returns (UnfollowUserResponse);
+  
+  // Get the list of users followed by a specific user
+  rpc GetFollowing (GetFollowingRequest) returns (GetFollowingResponse);
+}
+
+message FollowUserRequest {
+    string user_id = 1;
+    string target_user_id = 2;
+}
+  
+message FollowUserResponse {
+}
+  
+message UnfollowUserRequest {
+    string user_id = 1;
+    string target_user_id = 2;
+}
+  
+message UnfollowUserResponse {
+}
+  
+message GetFollowingRequest {
+    string user_id = 1;
+}
+  
+message GetFollowingResponse {
+    repeated User following = 1;
+}

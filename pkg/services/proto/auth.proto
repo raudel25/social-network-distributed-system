@@ -1,0 +1,30 @@
+syntax="proto3";
+
+package socialnetwork;
+option go_package = "pkg/services/grpc_auth;auth_pb";
+
+import "pkg/services/proto/db_models.proto";
+
+service Auth {
+  // Allows a user to log in. Returns an authentication token if the login is successful.
+  rpc Login (LoginRequest) returns (LoginResponse);
+
+  // Allows a new user to register.
+  rpc SignUp (SignUpRequest) returns (SignUpResponse);
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string token = 1;
+}
+
+message SignUpRequest {
+  User user = 1;
+}
+
+message SignUpResponse {
+}

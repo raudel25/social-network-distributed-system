@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"os"
 	"strconv"
 
 	"sync"
@@ -191,7 +192,7 @@ func (n *Node) GetKey(key string) (*string, error) {
 		return &res.Value, nil
 	}
 
-	return nil, fmt.Errorf("key %s\n not found", key)
+	return nil, os.ErrNotExist
 }
 
 func (n *Node) Set(ctx context.Context, req *pb.KeyValueRequest) (*pb.StatusResponse, error) {
@@ -248,7 +249,7 @@ func (n *Node) Remove(ctx context.Context, req *pb.KeyRequest) (*pb.StatusRespon
 	return &pb.StatusResponse{Ok: true}, nil
 }
 
-func (n *Node) RemoveKey(key string, value string) error {
+func (n *Node) RemoveKey(key string) error {
 	log.Printf("Remove key %s\n", key)
 
 	successor, err := n.findSuccessor(n.hashID(key))

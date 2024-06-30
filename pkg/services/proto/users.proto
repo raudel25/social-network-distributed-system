@@ -1,0 +1,39 @@
+syntax="proto3";
+
+package socialnetwork;
+option go_package = "pkg/services/grpc_users;users_pb";
+
+import "pkg/services/proto/db_models.proto";
+
+service UserService{
+    // Get a user
+    rpc GetUser(GetUserRequest) returns (GetUserResponse){}
+
+    // Edit user's account
+    rpc EditUser(EditUserRequest) returns (EditUserResponse){}
+
+    // Delete user's account
+    rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse){}
+}
+
+message GetUserRequest {
+    string username = 1;
+}
+
+message GetUserResponse {
+    User user = 1;
+}
+
+message EditUserRequest {
+    User user = 1;
+}
+
+message EditUserResponse{
+}
+
+message DeleteUserRequest {
+    string username = 1;
+}
+
+message DeleteUserResponse {
+}

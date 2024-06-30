@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package socialnetwork;
+option go_package = "pkg/services/grpc_db;db_models_pb";
+
+message Post {
+    string post_id = 1;
+    string user_id = 2;
+    string content = 3;
+    string original_post_id = 4; // This field is set if the post is a repost
+    int64 timestamp = 5;
+}
+
+message User {
+    string username = 1;
+    string name = 2;
+    string password_hash = 3;
+    string email = 4;
+}
+
+
+// The following messages are used to represent the relationships between users
+message UserFollows {
+    repeated string following_user_ids = 2;
+}
+
+// The following messages are used to represent the posts that a user has made
+message UserPosts {
+    repeated string posts_ids = 2;
+}
