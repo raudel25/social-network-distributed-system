@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"regexp"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -26,22 +27,39 @@ type AuthServer struct {
 }
 
 func (server *AuthServer) Login(ctx context.Context, request *auth_pb.LoginRequest) (*auth_pb.LoginResponse, error) {
-	user, err := loadUser(request.GetUsername())
-	if err != nil {
+	if !existsUser(request.GetUsername()) {
 		return nil, status.Errorf(codes.PermissionDenied, "Wrong username or password")
 	}
+
+	user, err := loadUser(request.GetUsername())
+
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Failed to load user %s: %v", request.GetUsername(), err)
+	}
+
 	if err := verifyPassword(user.PasswordHash, request.Password); err != nil {
 		return nil, status.Errorf(codes.PermissionDenied, "Wrong username or password")
 	}
+
 	tokenString, err := server.generateToken(user)
+
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to generate token")
 	}
+	
 	return &auth_pb.LoginResponse{Token: tokenString}, nil
 }
 
 func (server *AuthServer) SignUp(ctx context.Context, request *auth_pb.SignUpRequest) (*auth_pb.SignUpResponse, error) {
 	user := request.GetUser()
+
+	if !isEmailValid(user.Email) {
+		return &auth_pb.SignUpResponse{}, status.Errorf(codes.InvalidArgument, "Invalid email")
+	}
+
+	if existsUser(user.Username) {
+		return &auth_pb.SignUpResponse{}, status.Errorf(codes.InvalidArgument, "Fail to sign up")
+	}
 
 	if err := saveUser(user); err != nil {
 		return &auth_pb.SignUpResponse{}, status.Errorf(codes.Internal, "Failed to save user: %v", err)
@@ -179,4 +197,9 @@ func loadPublicKey(path string) (*rsa.PublicKey, error) {
 	}
 
 	return publicKey, nil
+}
+
+func isEmailValid(e string) bool {
+	emailRegex := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+	return emailRegex.MatchString(e)
 }

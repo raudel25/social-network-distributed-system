@@ -26,7 +26,7 @@ func (*UserServer) GetUser(_ context.Context, request *users_pb.GetUserRequest) 
 	user, err := loadUser(username)
 
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "Error loading user %s: %v", username, err)
 	}
 
 	user.PasswordHash = ""
@@ -45,7 +45,7 @@ func (s *UserServer) EditUser(ctx context.Context, request *users_pb.EditUserReq
 	}
 
 	if err := saveUser(request.GetUser()); err != nil {
-		return nil, err
+		return nil,status.Errorf(codes.Internal, "Error saving edited user %s: %v", username, err)
 	}
 
 	return &users_pb.EditUserResponse{}, nil
