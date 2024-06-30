@@ -7,7 +7,6 @@ import (
 	"github.com/raudel25/social-network-distributed-system/pkg/persistency"
 	follow_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_follow"
 	users_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_users"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
@@ -37,26 +36,27 @@ func userInFollowing(username string, followedUsername string) (bool, error) {
 
 func follow(username string, otherUsername string) error {
 	path := filepath.Join("User", strings.ToLower(username), "Follow")
+
 	userFollows := &follow_pb.UserFollows{
 		FollowingUserIds: make([]string, 0),
 	}
+
 	var err error
+
 	exists, err := persistency.FileExists(node, path)
 	if err != nil {
 		return err
 	}
+
 	if exists {
 		userFollows, err = persistency.Load(node, path, &follow_pb.UserFollows{})
 		if err != nil {
 			return err
 		}
-		if userFollows.FollowingUserIds == nil {
-			userFollows.FollowingUserIds = make([]string, 0)
-		}
 	}
+
 	userFollows.FollowingUserIds = append(userFollows.FollowingUserIds, otherUsername)
-	persistency.Save(node, userFollows, path)
-	return nil
+	return persistency.Save(node, userFollows, path)
 }
 
 func unfollow(username string, otherUsername string) error {
@@ -88,8 +88,8 @@ func unfollow(username string, otherUsername string) error {
 			break
 		}
 	}
-	persistency.Save(node, userFollows, path)
-	return nil
+	
+	return persistency.Save(node, userFollows, path)
 }
 
 func loadUserFollowing(username string) ([]*users_pb.User, error) {
@@ -100,8 +100,10 @@ func loadUserFollowing(username string) ([]*users_pb.User, error) {
 		return nil, err
 	}
 
+	users := make([]*users_pb.User, 0)
+
 	if !exists {
-		return nil, status.Errorf(codes.NotFound, "User %s following list not found", username)
+		return users, nil
 	}
 
 	userFollows, err := persistency.Load(node, path, &follow_pb.UserFollows{})
@@ -109,8 +111,6 @@ func loadUserFollowing(username string) ([]*users_pb.User, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	users := make([]*users_pb.User, 0)
 
 	for _, userId := range userFollows.FollowingUserIds {
 		user, err := loadUser(userId)

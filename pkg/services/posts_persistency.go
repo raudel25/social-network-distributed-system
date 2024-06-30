@@ -67,12 +67,13 @@ func createUserPost(postId string, username string) error {
 
 func loadUserPosts(username string) ([]*posts_pb.Post, error) {
 	path := filepath.Join("User", strings.ToLower(username), "Posts")
-	posts := make([]*posts_pb.Post, 0)
 
 	exists, err := persistency.FileExists(node, path)
 	if err != nil {
 		return nil, err
 	}
+
+	posts := make([]*posts_pb.Post, 0)
 
 	if !exists {
 		return posts, nil

@@ -53,11 +53,13 @@ func main() {
 
 	testSignUp(auth_client, user)
 	testLogin(auth_client, user.Username, "hashedpassword")
-	postId := testCreatePost(post_cliet, "anabel", "This is a test post")
-	testGetPost(post_cliet, postId)
-	testRepost(post_cliet, user.Username, postId)
-	testCreatePost(post_cliet, user.Username, "This is a test post 2")
-	testGetUserPosts(post_cliet, user.Username)
+	testRepost(post_cliet, user.Username, "123")                          // not found
+	testGetUserPosts(post_cliet, user.Username)                           // []
+	postId := testCreatePost(post_cliet, "anabel", "This is a test post") // ok
+	testGetPost(post_cliet, postId)                                       // post1
+	testRepost(post_cliet, user.Username, postId)                         // ok
+	testCreatePost(post_cliet, user.Username, "This is a test post 2")    // ok
+	testGetUserPosts(post_cliet, user.Username)                           // [post1, repost1, post2]
 }
 
 func testSignUp(client auth_pb.AuthClient, user *users_pb.User) {

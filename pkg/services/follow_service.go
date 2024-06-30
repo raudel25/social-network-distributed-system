@@ -16,7 +16,7 @@ type FollowServer struct {
 	*follow_pb.UnimplementedFollowServiceServer
 }
 
-func (*FollowServer) Follow(ctx context.Context, request *follow_pb.FollowUserRequest) (*follow_pb.FollowUserResponse, error) {
+func (*FollowServer) FollowUser(ctx context.Context, request *follow_pb.FollowUserRequest) (*follow_pb.FollowUserResponse, error) {
 	username := request.GetUserId()
 	targetUsername := request.GetTargetUserId()
 
@@ -47,7 +47,7 @@ func (*FollowServer) Follow(ctx context.Context, request *follow_pb.FollowUserRe
 	return &follow_pb.FollowUserResponse{}, nil
 }
 
-func (*FollowServer) Unfollow(ctx context.Context, request *follow_pb.UnfollowUserRequest) (*follow_pb.UnfollowUserResponse, error) {
+func (*FollowServer) UnfollowUser(ctx context.Context, request *follow_pb.UnfollowUserRequest) (*follow_pb.UnfollowUserResponse, error) {
 	username := request.GetUserId()
 	targetUsername := request.GetTargetUserId()
 

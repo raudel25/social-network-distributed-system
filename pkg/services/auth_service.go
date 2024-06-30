@@ -172,7 +172,7 @@ func checkPermission(ctx context.Context, requestedUsername string) error {
 	}
 
 	if username != requestedUsername {
-		return status.Errorf(codes.PermissionDenied, "You are not authorized to edit this user")
+		return status.Errorf(codes.PermissionDenied, "You are not authorized to perform this action")
 	}
 	return nil
 }

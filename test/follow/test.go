@@ -59,16 +59,22 @@ func main() {
 	}
 
 	testSignUp(auth_client, user1)
-	testLogin(auth_client, user1.Username, "hashedpassword")
 	testSignUp(auth_client, user2)
 	testLogin(auth_client, user2.Username, "hashedpassword")
-	
-	testGetFollowingUsers(follow_client, user1.Username)
-	testFollow(follow_client, user1.Username, user2.Username)
-	testFollow(follow_client, user1.Username, user2.Username)
-	testGetFollowingUsers(follow_client, user1.Username)
-	testFollow(follow_client, user2.Username, user1.Username)
-	testGetFollowingUsers(follow_client, user2.Username)
+
+	testGetFollowingUsers(follow_client, user1.Username)      // []
+	testFollow(follow_client, user1.Username, user2.Username) // not authorized
+
+	testFollow(follow_client, user2.Username, user1.Username) // ok
+	testFollow(follow_client, user2.Username, user1.Username) // already following
+	testGetFollowingUsers(follow_client, user2.Username)      // [user1]
+
+	testLogin(auth_client, user1.Username, "hashedpassword")
+	testFollow(follow_client, user1.Username, user2.Username)   // ok
+	testGetFollowingUsers(follow_client, user1.Username)        // [user2]
+	testUnfollow(follow_client, user1.Username, user2.Username) // ok
+	testGetFollowingUsers(follow_client, user1.Username)        // []
+	testUnfollow(follow_client, user1.Username, user2.Username) // not following
 }
 
 func testSignUp(client auth_pb.AuthClient, user *users_pb.User) {

@@ -58,22 +58,27 @@ func main() {
 		PasswordHash: password,
 		Email:        "testuser@example.com",
 	}
+	editedUser1 := &users_pb.User{
+		Username: "hola",
+		Name:     "Anabel Benítez",
+		Email:    "testuser@example.com",
+	}
 
-	testSignUp(auth_client, user1)
-	testSignUp(auth_client, user2)
-	testLogin(auth_client, "anabel", "hashedpassword")
-	testGetUser(users_client)
-	testEditUser(users_client)
+	testSignUp(auth_client, user1)                           // ok
+	testSignUp(auth_client, user2)                           // ok
+	testLogin(auth_client, user2.Username, "hashedpassword") // valid token
+	testGetUser(users_client, user1.Username)                // user1
+	testEditUser(users_client, editedUser1)                  // not authorized
 }
 
-func testGetUser(client users_pb.UserServiceClient) {
+func testGetUser(client users_pb.UserServiceClient, username string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	md := metadata.New(map[string]string{"authorization": token})
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	response, err := client.GetUser(ctx, &users_pb.GetUserRequest{Username: "hola"})
+	response, err := client.GetUser(ctx, &users_pb.GetUserRequest{Username: username})
 	if err != nil {
 		log.Printf("Error getting user: %v", err)
 	} else {
@@ -81,18 +86,12 @@ func testGetUser(client users_pb.UserServiceClient) {
 	}
 }
 
-func testEditUser(client users_pb.UserServiceClient) {
+func testEditUser(client users_pb.UserServiceClient, user *users_pb.User) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	md := metadata.New(map[string]string{"authorization": token})
 	ctx = metadata.NewOutgoingContext(ctx, md)
-
-	user := &users_pb.User{
-		Username: "hola",
-		Name:     "Anabel Benítez",
-		Email:    "testuser@example.com",
-	}
 
 	_, err := client.EditUser(ctx, &users_pb.EditUserRequest{User: user})
 	if err != nil {
@@ -101,8 +100,7 @@ func testEditUser(client users_pb.UserServiceClient) {
 		log.Printf("User edited successfully")
 	}
 
-	// Verify the edit by getting the user again
-	testGetUser(client)
+	testGetUser(client, user.Username)
 }
 
 func testSignUp(client auth_pb.AuthClient, user *users_pb.User) {
