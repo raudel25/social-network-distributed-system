@@ -3,14 +3,18 @@ syntax = "proto3";
 package socialnetwork;
 
 service PostService {
-  rpc CreatePost (CreatePostRequest) returns (CreatePostResponse);
-  
-  rpc GetPost (GetPostRequest) returns (GetPostResponse);
-  
-  rpc Repost (RepostRequest) returns (RepostResponse);
-
-  rpc GetUserPosts (GetUserPostsRequest) returns (GetUserPostsResponse);
-}
+    // Create a new post
+    rpc CreatePost (CreatePostRequest) returns (CreatePostResponse);
+    
+    // Get a post by its ID
+    rpc GetPost (GetPostRequest) returns (GetPostResponse);
+    
+    // Repost an existing post
+    rpc Repost (RepostRequest) returns (RepostResponse);
+    
+    // Get all posts for a specific user
+    rpc GetUserPosts (GetUserPostsRequest) returns (GetUserPostsResponse);
+  }
 
 message Post {
   string id = 1;

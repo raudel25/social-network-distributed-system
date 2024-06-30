@@ -6,7 +6,10 @@ option go_package = "github.com/raudel25/social-network-distributed-system/pkg/s
 import "pkg/services/proto/users.proto";
 
 service Auth {
+  // Allows a user to log in. Returns an authentication token if the login is successful.
   rpc Login (LoginRequest) returns (LoginResponse);
+
+  // Allows a new user to register.
   rpc SignUp (SignUpRequest) returns (SignUpResponse);
 }
 
@@ -19,9 +22,9 @@ message LoginResponse {
   string token = 1;
 }
 
-message SignUpRequest{
+message SignUpRequest {
   User user = 1;
 }
 
-message SignUpResponse{
+message SignUpResponse {
 }

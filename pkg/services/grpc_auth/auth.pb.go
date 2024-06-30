@@ -9,7 +9,7 @@ package services_pb
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	users "github.com/raudel25/social-network-distributed-system/pkg/services/users"
+	users "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_users"
 	reflect "reflect"
 	sync "sync"
 )

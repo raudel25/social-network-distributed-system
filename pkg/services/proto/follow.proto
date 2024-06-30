@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package socialnetwork;
+
+service FollowService {
+  // Follow a user
+  rpc FollowUser (FollowUserRequest) returns (FollowUserResponse);
+  
+  // Unfollow a user
+  rpc UnfollowUser (UnfollowUserRequest) returns (UnfollowUserResponse);
+  
+  // Get the list of users followed by a specific user
+  rpc GetFollowing (GetFollowingRequest) returns (GetFollowingResponse);
+  
+  // Get the list of followers for a specific user
+  rpc GetFollowers (GetFollowersRequest) returns (GetFollowersResponse);
+}
+
+message FollowUserRequest {
+    string user_id = 1;
+    string target_user_id = 2;
+}
+  
+message FollowUserResponse {
+}
+  
+message UnfollowUserRequest {
+    string user_id = 1;
+    string target_user_id = 2;
+}
+  
+message UnfollowUserResponse {
+}
+  
+message GetFollowingRequest {
+    string user_id = 1;
+}
+  
+message GetFollowingResponse {
+    repeated string following_user_ids = 1;
+}
+
+message GetFollowersRequest {
+    string user_id = 1;
+}
+  
+message GetFollowersResponse {
+    repeated string follower_user_ids = 1;
+}

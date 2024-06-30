@@ -8,7 +8,7 @@ import (
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/raudel25/social-network-distributed-system/pkg/persistency"
-	users_pb "github.com/raudel25/social-network-distributed-system/pkg/services/users"
+	users_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_users"
 	"google.golang.org/grpc"
 )
 

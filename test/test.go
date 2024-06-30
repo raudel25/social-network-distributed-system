@@ -6,8 +6,8 @@ import (
 	"time"
 
 	socialnetwork "github.com/raudel25/social-network-distributed-system/pkg/services"
-	auth_pb "github.com/raudel25/social-network-distributed-system/pkg/services/auth"
-	users_pb "github.com/raudel25/social-network-distributed-system/pkg/services/users"
+	auth_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_auth"
+	users_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_users"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

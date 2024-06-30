@@ -4,9 +4,10 @@ package socialnetwork;
 option go_package = "github.com/raudel25/social-network-distributed-system/pkg/services/users;users_pb";
 
 service UserService{
-
+    // Get a user
     rpc GetUser(GetUserRequest) returns (GetUserResponse){}
 
+    // Edit user's data
     rpc EditUser(EditUserRequest) returns (EditUserResponse){}
 }
 
