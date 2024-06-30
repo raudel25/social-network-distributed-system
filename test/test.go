@@ -46,7 +46,7 @@ func main() {
 	password, _ := hashPassword("hashedpassword")
 
 	user1 := &users_pb.User{
-		Username:     "anabel",
+		Username:     "hola",
 		Name:         "Test User",
 		PasswordHash: password,
 		Email:        "testuser@example.com",

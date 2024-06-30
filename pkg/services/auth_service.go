@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"net"
+	"os"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -49,26 +50,6 @@ func (server *AuthServer) SignUp(ctx context.Context, request *auth_pb.SignUpReq
 	return &auth_pb.SignUpResponse{}, nil
 }
 
-func ValidateRequest(ctx context.Context) (*jwt.Token, error) {
-	publicKey, err := loadPublicKey(rsaPublic)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Error reading and parsing the jwt public key: %v", err)
-	}
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return nil, status.Errorf(codes.Unauthenticated, "Valid token required.")
-	}
-	jwtToken, ok := md["authorization"]
-	if !ok {
-		return nil, status.Errorf(codes.Unauthenticated, "Valid token required.")
-	}
-	token, err := validateToken(jwtToken[0], publicKey)
-	if err != nil {
-		return nil, status.Errorf(codes.Unauthenticated, "Valid token required.")
-	}
-	return token, nil
-}
-
 func StartAuthServer(network, address string) {
 	log.Println("Auth service started")
 
@@ -99,6 +80,26 @@ func StartAuthServer(network, address string) {
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}
+}
+
+func validateRequest(ctx context.Context) (*jwt.Token, error) {
+	publicKey, err := loadPublicKey(rsaPublic)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Error reading and parsing the jwt public key: %v", err)
+	}
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, status.Errorf(codes.Unauthenticated, "Valid token required.")
+	}
+	jwtToken, ok := md["authorization"]
+	if !ok {
+		return nil, status.Errorf(codes.Unauthenticated, "Valid token required.")
+	}
+	token, err := validateToken(jwtToken[0], publicKey)
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, "Valid token required.")
+	}
+	return token, nil
 }
 
 func verifyPassword(hashedPassword, password string) error {
@@ -136,7 +137,7 @@ func extractUsernameFromToken(token *jwt.Token) (string, error) {
 }
 
 func checkPermission(ctx context.Context, requestedUsername string) error {
-	token, err := ValidateRequest(ctx)
+	token, err := validateRequest(ctx)
 	if err != nil {
 		return err
 	}
@@ -150,4 +151,32 @@ func checkPermission(ctx context.Context, requestedUsername string) error {
 		return status.Errorf(codes.PermissionDenied, "You are not authorized to edit this user")
 	}
 	return nil
+}
+
+func loadPrivateKey(path string) (*rsa.PrivateKey, error) {
+	key, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	parsedKey, err := jwt.ParseRSAPrivateKeyFromPEM(key)
+	if err != nil {
+		return nil, err
+	}
+
+	return parsedKey, nil
+}
+
+func loadPublicKey(path string) (*rsa.PublicKey, error) {
+	key, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	publicKey, err := jwt.ParseRSAPublicKeyFromPEM(key)
+	if err != nil {
+		return nil, err
+	}
+
+	return publicKey, nil
 }
