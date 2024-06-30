@@ -18,4 +18,5 @@ func Start(rsaPrivateKeyPath string, rsaPublicteKeyPath string, network string) 
 	go StartUserService(network, "0.0.0.0:50051")
 	go StartAuthServer(network, "0.0.0.0:50052")
 	go StartPostsService(network, "0.0.0.0:50053")
+	go StartFollowService(network, "0.0.0.0:50054")
 }

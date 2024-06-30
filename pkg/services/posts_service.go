@@ -28,7 +28,7 @@ func (*PostServer) GetPost(_ context.Context, request *posts_pb.GetPostRequest) 
 	post, err := loadPost(postId)
 
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "Failed to load post: %v", err)
 	}
 
 	return &posts_pb.GetPostResponse{Post: post}, nil
@@ -91,10 +91,14 @@ func (*PostServer) Repost(ctx context.Context, request *posts_pb.RepostRequest) 
 func (*PostServer) GetUserPosts(_ context.Context, request *posts_pb.GetUserPostsRequest) (*posts_pb.GetUserPostsResponse, error) {
 	userId := request.GetUserId()
 
+	if !existsUser(userId) {
+		return nil, status.Errorf(codes.NotFound, "User %s not found", userId)
+	}
+
 	posts, err := loadUserPosts(userId)
 
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "Failed to load user posts: %v", err)
 	}
 
 	return &posts_pb.GetUserPostsResponse{Posts: posts}, nil

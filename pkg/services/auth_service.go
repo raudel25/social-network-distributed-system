@@ -44,7 +44,7 @@ func (server *AuthServer) SignUp(ctx context.Context, request *auth_pb.SignUpReq
 	user := request.GetUser()
 
 	if err := saveUser(user); err != nil {
-		return &auth_pb.SignUpResponse{}, err
+		return &auth_pb.SignUpResponse{}, status.Errorf(codes.Internal, "Failed to save user: %v", err)
 	}
 
 	return &auth_pb.SignUpResponse{}, nil

@@ -3,6 +3,8 @@ syntax = "proto3";
 package socialnetwork;
 option go_package = "../grpc_follow;follow_pb";
 
+import "pkg/services/proto/users.proto";
+
 service FollowService {
   // Follow a user
   rpc FollowUser (FollowUserRequest) returns (FollowUserResponse);
@@ -12,9 +14,6 @@ service FollowService {
   
   // Get the list of users followed by a specific user
   rpc GetFollowing (GetFollowingRequest) returns (GetFollowingResponse);
-  
-  // Get the list of followers for a specific user
-  rpc GetFollowers (GetFollowersRequest) returns (GetFollowersResponse);
 }
 
 message FollowUserRequest {
@@ -38,13 +37,10 @@ message GetFollowingRequest {
 }
   
 message GetFollowingResponse {
-    repeated string following_user_ids = 1;
+    repeated User following = 1;
 }
 
-message GetFollowersRequest {
+message UserFollows {
     string user_id = 1;
-}
-  
-message GetFollowersResponse {
-    repeated string follower_user_ids = 1;
+    repeated string following_user_ids = 2;
 }
