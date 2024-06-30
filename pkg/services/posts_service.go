@@ -39,6 +39,10 @@ func (*PostServer) CreatePost(ctx context.Context, request *posts_pb.CreatePostR
 		return nil, err
 	}
 
+	if len(request.GetContent()) > 140 {
+		return nil, status.Errorf(codes.InvalidArgument, "Post content is too long")
+	}
+
 	postID := fmt.Sprintf("%d", time.Now().UnixNano())
 
 	post := &posts_pb.Post{
