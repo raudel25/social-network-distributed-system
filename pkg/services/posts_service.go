@@ -57,7 +57,7 @@ func (*PostServer) CreatePost(ctx context.Context, request *posts_pb.CreatePostR
 		return nil, status.Errorf(codes.Internal, "Failed to save post: %v", err)
 	}
 
-	if err := createUserPost(postID, request.GetUserId()); err != nil {
+	if err := addToPostsList(postID, request.GetUserId()); err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to save post to user: %v", err)
 	}
 
@@ -86,7 +86,7 @@ func (*PostServer) Repost(ctx context.Context, request *posts_pb.RepostRequest) 
 		return nil, status.Errorf(codes.Internal, "Failed to save post: %v", err)
 	}
 
-	if err := createUserPost(postID, request.GetUserId()); err != nil {
+	if err := addToPostsList(postID, request.GetUserId()); err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to save post to user: %v", err)
 	}
 
@@ -100,7 +100,7 @@ func (*PostServer) GetUserPosts(_ context.Context, request *posts_pb.GetUserPost
 		return nil, err
 	}
 
-	posts, err := loadUserPosts(userId)
+	posts, err := loadPostsList(userId)
 
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to load user posts: %v", err)

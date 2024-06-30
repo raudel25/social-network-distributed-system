@@ -10,6 +10,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// ============================================== Post ==========================================================
+
 func existsPost(postId string) (bool, error) {
 	path := filepath.Join("Post", postId)
 	return persistency.FileExists(node, path)
@@ -37,12 +39,19 @@ func loadPost(postId string) (*db_models_pb.Post, error) {
 	return post, nil
 }
 
+func removePost(postId string) error {
+	path := filepath.Join("Post", postId)
+	return persistency.Delete(node, path)
+}
+
 func savePost(post *db_models_pb.Post) error {
 	path := filepath.Join("Post", post.PostId)
 	return persistency.Save(node, post, path)
 }
 
-func createUserPost(postId string, username string) error {
+// ========================================= User-Post relationship =====================================================
+
+func addToPostsList(postId string, username string) error {
 	path := filepath.Join("User", strings.ToLower(username), "Posts")
 	posts := &db_models_pb.UserPosts{
 		PostsIds: make([]string, 0),
@@ -65,7 +74,7 @@ func createUserPost(postId string, username string) error {
 	return persistency.Save(node, posts, path)
 }
 
-func loadUserPosts(username string) ([]*db_models_pb.Post, error) {
+func loadPostsList(username string) ([]*db_models_pb.Post, error) {
 	path := filepath.Join("User", strings.ToLower(username), "Posts")
 
 	exists, err := persistency.FileExists(node, path)
@@ -91,4 +100,35 @@ func loadUserPosts(username string) ([]*db_models_pb.Post, error) {
 		posts = append(posts, post)
 	}
 	return posts, nil
+}
+
+func removeFromPostsList(username string, postId string) error {
+	path := filepath.Join("User", strings.ToLower(username), "Posts")
+	exists, err := persistency.FileExists(node, path)
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		return status.Errorf(404, "User %s posts list not found", username)
+	}
+
+	posts, err := persistency.Load(node, path, &db_models_pb.UserPosts{})
+	if err != nil {
+		return err
+	}
+
+	for i, id := range posts.PostsIds {
+		if id == postId {
+			posts.PostsIds = append(posts.PostsIds[:i], posts.PostsIds[i+1:]...)
+			break
+		}
+	}
+
+	return persistency.Save(node, posts, path)
+}
+
+func removePostsList(username string) error {
+	path := filepath.Join("User", strings.ToLower(username), "Posts")
+	return persistency.Delete(node, path)
 }
