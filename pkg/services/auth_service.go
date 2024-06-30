@@ -1,4 +1,4 @@
-package socialnetwork;
+package socialnetwork
 
 import (
 	"context"
@@ -6,13 +6,10 @@ import (
 	"errors"
 	"log"
 	"net"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	"github.com/raudel25/social-network-distributed-system/pkg/persistency"
 	auth_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_auth"
 	users_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_users"
 	"golang.org/x/crypto/bcrypt"
@@ -44,18 +41,19 @@ func (server *AuthServer) Login(ctx context.Context, request *auth_pb.LoginReque
 
 func (server *AuthServer) SignUp(ctx context.Context, request *auth_pb.SignUpRequest) (*auth_pb.SignUpResponse, error) {
 	user := request.GetUser()
+
 	if err := saveUser(user); err != nil {
 		return &auth_pb.SignUpResponse{}, err
 	}
+
 	return &auth_pb.SignUpResponse{}, nil
 }
 
 func ValidateRequest(ctx context.Context) (*jwt.Token, error) {
 	publicKey, err := loadPublicKey(rsaPublic)
 	if err != nil {
-		log.Fatalf("Error reading and parsing the jwt public key: %v", err)
+		return nil, status.Errorf(codes.Internal, "Error reading and parsing the jwt public key: %v", err)
 	}
-
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return nil, status.Errorf(codes.Unauthenticated, "Valid token required.")
@@ -103,24 +101,8 @@ func StartAuthServer(network, address string) {
 	}
 }
 
-func loadUser(username string) (*users_pb.User, error) {
-	user := &users_pb.User{}
-	path := filepath.Join("User", strings.ToLower(username))
-	return persistency.Load(node, path, user)
-
-}
-
 func verifyPassword(hashedPassword, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-}
-
-func saveUser(user *users_pb.User) error {
-	user.Username = strings.ToLower(user.Username)
-	path := filepath.Join("User", user.Username)
-	if persistency.FileExists(node, path) {
-		return status.Error(codes.AlreadyExists, "Username is taken")
-	}
-	return persistency.Save(node, user, path)
 }
 
 func (server *AuthServer) generateToken(user *users_pb.User) (string, error) {
