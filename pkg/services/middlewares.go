@@ -2,8 +2,9 @@ package socialnetwork
 
 import (
 	"context"
-	"log"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/peer"
@@ -35,13 +36,13 @@ func StreamServerInterceptor(srv interface{}, ss grpc.ServerStream, info *grpc.S
 func UnaryLoggingInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	p, _ := peer.FromContext(ctx)
 
-	log.Printf("Request received - Method:%s From:%s", info.FullMethod, p.Addr.String())
+	log.Debugf("Request received - Method:%s From:%s", info.FullMethod, p.Addr.String())
 
 	start := time.Now()
 
 	h, err := handler(ctx, req)
 
-	log.Printf("Request completed - Method:%s\tDuration:%s\tError:%v",
+	log.Debugf("Request completed - Method:%s\tDuration:%s\tError:%v",
 		info.FullMethod,
 		time.Since(start),
 		err)
@@ -55,13 +56,13 @@ func StreamLoggingInterceptor(srv interface{}, ss grpc.ServerStream, info *grpc.
 
 	p, _ := peer.FromContext(ctx)
 
-	log.Printf("Streaming request received - Method:%s From:%s", info.FullMethod, p.Addr.String())
+	log.Debugf("Streaming request received - Method:%s From:%s", info.FullMethod, p.Addr.String())
 
 	start := time.Now()
 
 	err := handler(srv, ss)
 
-	log.Printf("Streaming Request completed - Method:%s\tDuration:%s\tError:%v",
+	log.Debugf("Streaming Request completed - Method:%s\tDuration:%s\tError:%v",
 		info.FullMethod,
 		time.Since(start),
 		err)

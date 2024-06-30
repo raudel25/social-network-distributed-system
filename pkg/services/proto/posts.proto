@@ -14,9 +14,6 @@ service PostService {
 
     // Repost an existing post
     rpc Repost (RepostRequest) returns (RepostResponse);
-
-    // Delete a post by its ID
-    rpc DeletePost (DeletePostRequest) returns (DeletePostResponse);
     
     // Get all posts for a specific user
     rpc GetUserPosts (GetUserPostsRequest) returns (GetUserPostsResponse);

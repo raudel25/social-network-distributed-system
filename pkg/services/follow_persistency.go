@@ -116,8 +116,3 @@ func loadFollowing(username string) ([]*db_models_pb.User, error) {
 
 	return users, nil
 }
-
-func removeFollowingList(username string) error {
-	path := filepath.Join("User", strings.ToLower(username), "Follow")
-	return persistency.Delete(node, path)
-}

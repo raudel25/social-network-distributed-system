@@ -3,10 +3,14 @@ package main
 import (
 	"flag"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/raudel25/social-network-distributed-system/pkg/chord"
+	"github.com/raudel25/social-network-distributed-system/pkg/logging"
 )
 
 func main() {
+	logging.SettingLogger(log.InfoLevel, ".")
 	port := flag.String("p", "5000", "Default port is 5000")
 	join := flag.String("j", "", "Default join is empty")
 	flag.Parse()
@@ -16,6 +20,5 @@ func main() {
 	node.Start(*port)
 
 	for {
-
 	}
 }
