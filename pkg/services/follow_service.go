@@ -32,7 +32,7 @@ func (*FollowServer) FollowUser(ctx context.Context, request *follow_pb.FollowUs
 		return nil, err
 	}
 
-	following, err := userInFollowing(username, targetUsername)
+	following, err := existsInFollowingList(username, targetUsername)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to load following %v", err)
 	}
@@ -40,7 +40,7 @@ func (*FollowServer) FollowUser(ctx context.Context, request *follow_pb.FollowUs
 		return nil, status.Errorf(codes.AlreadyExists, "Already following user")
 	}
 
-	if err := follow(username, targetUsername); err != nil {
+	if err := addToUserFollowingList(username, targetUsername); err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to follow user %v", err)
 	}
 
@@ -63,7 +63,7 @@ func (*FollowServer) UnfollowUser(ctx context.Context, request *follow_pb.Unfoll
 		return nil, err
 	}
 
-	following, err := userInFollowing(username, targetUsername)
+	following, err := existsInFollowingList(username, targetUsername)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to load following %v", err)
 	}
@@ -71,7 +71,7 @@ func (*FollowServer) UnfollowUser(ctx context.Context, request *follow_pb.Unfoll
 		return nil, status.Errorf(codes.NotFound, "Not following user")
 	}
 
-	if err := unfollow(username, targetUsername); err != nil {
+	if err := removeFromUserFollowingList(username, targetUsername); err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to unfollow user %v", err)
 	}
 
@@ -85,7 +85,7 @@ func (*FollowServer) GetFollowing(ctx context.Context, request *follow_pb.GetFol
 		return nil, err
 	}
 
-	following, err := loadUserFollowing(username)
+	following, err := loadFollowing(username)
 
 	if err != nil {
 		return nil, err
