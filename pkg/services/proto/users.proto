@@ -11,9 +11,6 @@ service UserService{
 
     // Edit user's account
     rpc EditUser(EditUserRequest) returns (EditUserResponse){}
-
-    // Delete user's account
-    rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse){}
 }
 
 message GetUserRequest {

@@ -41,8 +41,3 @@ func saveUser(user *db_models_pb.User) error {
 	path := filepath.Join("User", strings.ToLower(user.Username))
 	return persistency.Save(node, user, path)
 }
-
-func removeUser(username string) error {
-	path := filepath.Join("User", strings.ToLower(username))
-	return persistency.Delete(node, path)
-}

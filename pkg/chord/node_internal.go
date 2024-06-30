@@ -3,8 +3,9 @@ package chord
 import (
 	"crypto/sha1"
 	"fmt"
-	"log"
 	"math/big"
+
+	log "github.com/sirupsen/logrus"
 
 	pb "github.com/raudel25/social-network-distributed-system/pkg/chord/grpc"
 )
