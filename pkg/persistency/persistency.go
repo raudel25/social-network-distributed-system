@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"log"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/raudel25/social-network-distributed-system/pkg/chord"
 	"google.golang.org/grpc/codes"
@@ -20,11 +20,11 @@ import (
 func Save[T protoreflect.ProtoMessage](node *chord.Node, object T, path string) error {
 	fullPath := strings.ToLower(filepath.ToSlash(filepath.Join("resources", path+".bin")))
 
-	log.Printf("Saving file: %s", fullPath)
+	log.Debugf("Saving file: %s", fullPath)
 
 	data, err := proto.Marshal(object)
 	if err != nil {
-		log.Printf("Error serializing object: %v", err)
+		log.Errorf("Error serializing object: %v", err)
 		return status.Error(codes.Internal, "Error saving data")
 	}
 
@@ -32,7 +32,7 @@ func Save[T protoreflect.ProtoMessage](node *chord.Node, object T, path string) 
 
 	err = node.SetKey(fullPath, strData)
 	if err != nil {
-		log.Println("Error saving file")
+		log.Errorf("Error saving file")
 		return status.Error(codes.Internal, "Error saving data")
 	}
 
@@ -43,25 +43,25 @@ func Save[T protoreflect.ProtoMessage](node *chord.Node, object T, path string) 
 func Load[T protoreflect.ProtoMessage](node *chord.Node, path string, result T) (T, error) {
 	fullPath := strings.ToLower(filepath.ToSlash(filepath.Join("resources", path+".bin")))
 
-	log.Printf("Loading file: %s", fullPath)
+	log.Debugf("Loading file: %s", fullPath)
 
 	var empty T
 
 	dataStr, err := node.GetKey(fullPath)
 	if err != nil {
-		log.Printf("Error getting file: %v", err)
+		log.Errorf("Error getting file: %v", err)
 		return empty, status.Errorf(codes.Internal, "")
 	}
 
 	data, err := base64.StdEncoding.DecodeString(*dataStr)
 	if err != nil {
-		log.Printf("Error decoding object: %v", err)
+		log.Errorf("Error decoding object: %v", err)
 		return empty, status.Errorf(codes.Internal, "")
 	}
 
 	err = proto.Unmarshal(data, result)
 	if err != nil {
-		log.Printf("Error deserializing object: %v", err)
+		log.Errorf("Error deserializing object: %v", err)
 		return empty, status.Errorf(codes.Internal, "")
 	}
 
@@ -72,9 +72,11 @@ func Load[T protoreflect.ProtoMessage](node *chord.Node, path string, result T) 
 func Delete(node *chord.Node, path string) error {
 	fullPath := strings.ToLower(filepath.ToSlash(filepath.Join("resources", path+".bin")))
 
+	log.Debugf("Deleting file: %s", fullPath)
+
 	err := node.RemoveKey(fullPath)
 	if err != nil {
-		log.Printf("Error deleting file: %v", err)
+		log.Errorf("Error deleting file: %v", err)
 		return status.Error(codes.Internal, "Couldn't delete file")
 	}
 	return nil
@@ -84,16 +86,18 @@ func Delete(node *chord.Node, path string) error {
 func FileExists(node *chord.Node, path string) (bool, error) {
 	fullPath := strings.ToLower(filepath.ToSlash(filepath.Join("resources", path+".bin")))
 
-	log.Printf("Checking if file exists: %s", fullPath)
+	log.Debugf("Checking if file exists: %s", fullPath)
 
 	_, err := node.GetKey(fullPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
+			log.Debugf("File doesn't exist")
 			return false, nil
 		}
+		log.Errorf("Error getting file: %v", err)
 		return false, status.Errorf(codes.Internal, "Couldn't get files")
 	}
 
-	log.Printf("File already exists: %v", fullPath)
+	log.Debugf("File already exists: %v", fullPath)
 	return true, nil
 }

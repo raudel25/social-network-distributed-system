@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
-	"log"
 	"time"
 
+	"github.com/raudel25/social-network-distributed-system/pkg/logging"
 	socialnetwork "github.com/raudel25/social-network-distributed-system/pkg/services"
 	auth_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_auth"
 	db_models_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_db"
 	users_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_users"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -18,6 +19,7 @@ import (
 var token string
 
 func main() {
+	logging.SettingLogger(log.DebugLevel, ".")
 	rsaPrivateKeyPath := "pv.pem"
 	rsaPublicteKeyPath := "pub.pem"
 	network := "tcp"
