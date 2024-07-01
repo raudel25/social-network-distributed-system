@@ -8,18 +8,17 @@ import (
 	"time"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	db_models_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_db"
-	posts_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_posts"
+	socialnetwork_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type PostServer struct {
-	posts_pb.UnimplementedPostServiceServer
+	socialnetwork_pb.UnimplementedPostServiceServer
 }
 
-func (*PostServer) GetPost(_ context.Context, request *posts_pb.GetPostRequest) (*posts_pb.GetPostResponse, error) {
+func (*PostServer) GetPost(_ context.Context, request *socialnetwork_pb.GetPostRequest) (*socialnetwork_pb.GetPostResponse, error) {
 	postId := request.GetPostId()
 
 	if err := checkPostsExist(request.PostId); err != nil {
@@ -32,10 +31,10 @@ func (*PostServer) GetPost(_ context.Context, request *posts_pb.GetPostRequest) 
 		return nil, status.Errorf(codes.Internal, "Failed to load post: %v", err)
 	}
 
-	return &posts_pb.GetPostResponse{Post: post}, nil
+	return &socialnetwork_pb.GetPostResponse{Post: post}, nil
 }
 
-func (*PostServer) CreatePost(ctx context.Context, request *posts_pb.CreatePostRequest) (*posts_pb.CreatePostResponse, error) {
+func (*PostServer) CreatePost(ctx context.Context, request *socialnetwork_pb.CreatePostRequest) (*socialnetwork_pb.CreatePostResponse, error) {
 	if err := checkPermission(ctx, request.GetUserId()); err != nil {
 		return nil, err
 	}
@@ -46,7 +45,7 @@ func (*PostServer) CreatePost(ctx context.Context, request *posts_pb.CreatePostR
 
 	postID := fmt.Sprintf("%d", time.Now().UnixNano())
 
-	post := &db_models_pb.Post{
+	post := &socialnetwork_pb.Post{
 		PostId:    postID,
 		UserId:    request.GetUserId(),
 		Content:   request.GetContent(),
@@ -61,10 +60,10 @@ func (*PostServer) CreatePost(ctx context.Context, request *posts_pb.CreatePostR
 		return nil, status.Errorf(codes.Internal, "Failed to save post to user: %v", err)
 	}
 
-	return &posts_pb.CreatePostResponse{Post: post}, nil
+	return &socialnetwork_pb.CreatePostResponse{Post: post}, nil
 }
 
-func (*PostServer) Repost(ctx context.Context, request *posts_pb.RepostRequest) (*posts_pb.RepostResponse, error) {
+func (*PostServer) Repost(ctx context.Context, request *socialnetwork_pb.RepostRequest) (*socialnetwork_pb.RepostResponse, error) {
 	if err := checkPermission(ctx, request.GetUserId()); err != nil {
 		return nil, err
 	}
@@ -75,7 +74,7 @@ func (*PostServer) Repost(ctx context.Context, request *posts_pb.RepostRequest) 
 
 	postID := fmt.Sprintf("%d", time.Now().UnixNano())
 
-	post := &db_models_pb.Post{
+	post := &socialnetwork_pb.Post{
 		PostId:         postID,
 		UserId:         request.GetUserId(),
 		Timestamp:      time.Now().Unix(),
@@ -90,10 +89,10 @@ func (*PostServer) Repost(ctx context.Context, request *posts_pb.RepostRequest) 
 		return nil, status.Errorf(codes.Internal, "Failed to save post to user: %v", err)
 	}
 
-	return &posts_pb.RepostResponse{Post: post}, nil
+	return &socialnetwork_pb.RepostResponse{Post: post}, nil
 }
 
-func (*PostServer) GetUserPosts(_ context.Context, request *posts_pb.GetUserPostsRequest) (*posts_pb.GetUserPostsResponse, error) {
+func (*PostServer) GetUserPosts(_ context.Context, request *socialnetwork_pb.GetUserPostsRequest) (*socialnetwork_pb.GetUserPostsResponse, error) {
 	userId := request.GetUserId()
 
 	if err := checkUsersExist(userId); err != nil {
@@ -106,7 +105,7 @@ func (*PostServer) GetUserPosts(_ context.Context, request *posts_pb.GetUserPost
 		return nil, status.Errorf(codes.Internal, "Failed to load user posts: %v", err)
 	}
 
-	return &posts_pb.GetUserPostsResponse{Posts: posts}, nil
+	return &socialnetwork_pb.GetUserPostsResponse{Posts: posts}, nil
 }
 
 func StartPostsService(network string, address string) {
@@ -132,7 +131,7 @@ func StartPostsService(network string, address string) {
 		),
 	)
 
-	posts_pb.RegisterPostServiceServer(s, &PostServer{})
+	socialnetwork_pb.RegisterPostServiceServer(s, &PostServer{})
 
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %v", err)

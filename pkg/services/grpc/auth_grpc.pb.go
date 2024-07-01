@@ -4,7 +4,7 @@
 // - protoc             v3.6.1
 // source: pkg/services/proto/auth.proto
 
-package auth_pb
+package socialnetwork_pb
 
 import (
 	context "context"

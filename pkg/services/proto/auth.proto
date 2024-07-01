@@ -1,7 +1,7 @@
 syntax="proto3";
 
 package socialnetwork;
-option go_package = "pkg/services/grpc_auth;auth_pb";
+option go_package = "pkg/services/grpc;socialnetwork_pb";
 
 import "pkg/services/proto/db_models.proto";
 

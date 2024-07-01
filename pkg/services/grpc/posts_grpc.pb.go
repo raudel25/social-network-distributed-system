@@ -4,7 +4,7 @@
 // - protoc             v3.6.1
 // source: pkg/services/proto/posts.proto
 
-package posts_pb
+package socialnetwork_pb
 
 import (
 	context "context"
@@ -28,8 +28,6 @@ type PostServiceClient interface {
 	GetPost(ctx context.Context, in *GetPostRequest, opts ...grpc.CallOption) (*GetPostResponse, error)
 	// Repost an existing post
 	Repost(ctx context.Context, in *RepostRequest, opts ...grpc.CallOption) (*RepostResponse, error)
-	// Delete a post by its ID
-	DeletePost(ctx context.Context, in *DeletePostRequest, opts ...grpc.CallOption) (*DeletePostResponse, error)
 	// Get all posts for a specific user
 	GetUserPosts(ctx context.Context, in *GetUserPostsRequest, opts ...grpc.CallOption) (*GetUserPostsResponse, error)
 }
@@ -69,15 +67,6 @@ func (c *postServiceClient) Repost(ctx context.Context, in *RepostRequest, opts 
 	return out, nil
 }
 
-func (c *postServiceClient) DeletePost(ctx context.Context, in *DeletePostRequest, opts ...grpc.CallOption) (*DeletePostResponse, error) {
-	out := new(DeletePostResponse)
-	err := c.cc.Invoke(ctx, "/socialnetwork.PostService/DeletePost", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *postServiceClient) GetUserPosts(ctx context.Context, in *GetUserPostsRequest, opts ...grpc.CallOption) (*GetUserPostsResponse, error) {
 	out := new(GetUserPostsResponse)
 	err := c.cc.Invoke(ctx, "/socialnetwork.PostService/GetUserPosts", in, out, opts...)
@@ -97,8 +86,6 @@ type PostServiceServer interface {
 	GetPost(context.Context, *GetPostRequest) (*GetPostResponse, error)
 	// Repost an existing post
 	Repost(context.Context, *RepostRequest) (*RepostResponse, error)
-	// Delete a post by its ID
-	DeletePost(context.Context, *DeletePostRequest) (*DeletePostResponse, error)
 	// Get all posts for a specific user
 	GetUserPosts(context.Context, *GetUserPostsRequest) (*GetUserPostsResponse, error)
 	mustEmbedUnimplementedPostServiceServer()
@@ -116,9 +103,6 @@ func (UnimplementedPostServiceServer) GetPost(context.Context, *GetPostRequest) 
 }
 func (UnimplementedPostServiceServer) Repost(context.Context, *RepostRequest) (*RepostResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Repost not implemented")
-}
-func (UnimplementedPostServiceServer) DeletePost(context.Context, *DeletePostRequest) (*DeletePostResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeletePost not implemented")
 }
 func (UnimplementedPostServiceServer) GetUserPosts(context.Context, *GetUserPostsRequest) (*GetUserPostsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserPosts not implemented")
@@ -190,24 +174,6 @@ func _PostService_Repost_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PostService_DeletePost_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeletePostRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PostServiceServer).DeletePost(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/socialnetwork.PostService/DeletePost",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PostServiceServer).DeletePost(ctx, req.(*DeletePostRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _PostService_GetUserPosts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetUserPostsRequest)
 	if err := dec(in); err != nil {
@@ -244,10 +210,6 @@ var PostService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Repost",
 			Handler:    _PostService_Repost_Handler,
-		},
-		{
-			MethodName: "DeletePost",
-			Handler:    _PostService_DeletePost_Handler,
 		},
 		{
 			MethodName: "GetUserPosts",
