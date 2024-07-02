@@ -1,17 +1,11 @@
 # Go parameters
 GOCMD=go
-GOCLEAN=$(GOCMD) clean
 GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
 BINARY_NAME=socialnetwork
 
 JOIN ?= ""
 CONTAINER_PORT ?= 5000
-
-.PHONY: clean
-clean:
-	$(GOCLEAN)
-	rm -f $(BINARY_NAME)
 
 .PHONY: deps
 deps:
