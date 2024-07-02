@@ -72,11 +72,18 @@ func (*PostServer) Repost(ctx context.Context, request *socialnetwork_pb.RepostR
 		return nil, err
 	}
 
+	old_post, err := loadPost(request.OriginalPostId)
+
+	if err != nil {
+		return nil, err
+	}
+
 	postID := fmt.Sprintf("%d", time.Now().UnixNano())
 
 	post := &socialnetwork_pb.Post{
 		PostId:         postID,
 		UserId:         request.GetUserId(),
+		Content:        old_post.Content,
 		Timestamp:      time.Now().Unix(),
 		OriginalPostId: request.OriginalPostId,
 	}

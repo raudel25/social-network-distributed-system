@@ -18,13 +18,12 @@ message User {
     string email = 4;
 }
 
-
-// The following messages are used to represent the relationships between users
+// Used to represent the following relationships between users
 message UserFollows {
     repeated string following_user_ids = 2;
 }
 
-// The following messages are used to represent the posts that a user has made
+// Used to represent the posts that a user has made
 message UserPosts {
     repeated string posts_ids = 2;
 }

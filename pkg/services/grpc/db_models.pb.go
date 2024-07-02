@@ -170,7 +170,7 @@ func (x *User) GetEmail() string {
 	return ""
 }
 
-// The following messages are used to represent the relationships between users
+// Used to represent the following relationships between users
 type UserFollows struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -218,7 +218,7 @@ func (x *UserFollows) GetFollowingUserIds() []string {
 	return nil
 }
 
-// The following messages are used to represent the posts that a user has made
+// Used to represent the posts that a user has made
 type UserPosts struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
