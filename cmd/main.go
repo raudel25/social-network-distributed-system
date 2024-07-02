@@ -12,12 +12,12 @@ import (
 func main() {
 	logging.SettingLogger(log.InfoLevel, ".")
 	port := flag.String("p", "5000", "Default port is 5000")
-	join := flag.String("j", "", "Default join is empty")
+	broad := flag.String("b", "8000", "Default port broad is 8000")
 	flag.Parse()
 
-	node := chord.NewNode(&chord.Configuration{JoinAddress: *join, SuccessorsSize: 5, HashSize: 4}, nil)
+	node := chord.NewNode(&chord.Configuration{JoinAddress: "8000", SuccessorsSize: 5, HashSize: 4}, nil)
 
-	node.Start(*port)
+	node.Start(*port, *broad)
 
 	for {
 	}

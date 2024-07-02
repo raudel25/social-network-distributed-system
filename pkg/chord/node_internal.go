@@ -4,6 +4,9 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"math/big"
+	"net"
+	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -521,7 +524,70 @@ func (n *Node) fixStorage() {
 	}
 }
 
+func (n *Node) netDiscover(broad string) (string, error) {
+	// Specify the broadcast address.
+	// ip[3] = 255
+	broadcast := fmt.Sprintf("%s:%s", n.ip, broad)
+
+	// Try to listen at the specific port to use.
+	pc, err := net.ListenPacket("udp4", fmt.Sprintf(":%s", broad))
+	if err != nil {
+		log.Errorf("Error listen at the address %s.", broadcast)
+		return "", err
+	}
+
+	// Resolve the address to broadcast.
+	out, err := net.ResolveUDPAddr("udp4", broadcast)
+	if err != nil {
+		log.Errorf("Error resolving broadcast address %s", broadcast)
+		return "", err
+	}
+
+	log.Info("UPD broadcast address resolved.")
+
+	// Send the message.
+	_, err = pc.WriteTo([]byte("Chord?"), out)
+	if err != nil {
+		log.Errorf("Error sending broadcast message at address %s.", broadcast)
+		return "", err
+	}
+
+	log.Info("Message broadcast done.")
+	top := time.Now().Add(10 * time.Second)
+
+	log.Info("Waiting for response.")
+
+	for top.After(time.Now()) {
+		// Create the buffer to store the message.
+		buf := make([]byte, 1024)
+
+		// Set the deadline to wait for incoming messages.
+		err = pc.SetReadDeadline(time.Now().Add(2 * time.Second))
+		if err != nil {
+			log.Error("Error setting deadline for incoming messages.")
+			return "", err
+		}
+
+		// Wait for a message.
+		n, address, err := pc.ReadFrom(buf)
+		if err != nil {
+			log.Errorf("Error reading incoming message.\n%s", err.Error())
+			continue
+		}
+
+		log.Debugf("Incoming response message. %s sent this: %s", address, buf[:n])
+
+		if string(buf[:n]) == "I am chord" {
+			return strings.Split(address.String(), ":")[0], nil
+		}
+	}
+
+	log.Info("Deadline for response exceed.")
+	return "", nil
+}
+
 func (n *Node) createRing() {
+	log.Info("Create a chord ring")
 	n.predLock.Lock()
 	n.predecessors.SetIndex(0, n)
 	n.predLock.Unlock()
@@ -532,10 +598,13 @@ func (n *Node) createRing() {
 }
 
 func (n *Node) createRingOrJoin() {
-	if n.config.JoinAddress != "" {
-		err := n.Join(n.config.JoinAddress)
+	discover, _ := n.netDiscover(n.config.JoinAddress)
+
+	if discover != "" {
+		println(("aa"))
+		err := n.Join(discover)
 		if err != nil {
-			log.Println(err.Error())
+			log.Info(err.Error())
 		}
 		return
 	}

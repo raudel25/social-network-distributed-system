@@ -43,3 +43,15 @@ func getOutboundIP() net.IP {
 
 	return localAddr.IP
 }
+
+func isOpen[T any](channel <-chan T) bool {
+	select {
+	case <-channel:
+		return false
+	default:
+		if channel == nil {
+			return false
+		}
+		return true
+	}
+}

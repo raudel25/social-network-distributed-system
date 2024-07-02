@@ -104,25 +104,6 @@ func (n *Node) threadFixStorage() {
 	}
 }
 
-func (n *Node) threadTest() {
-	count := 0
-	ticker := time.NewTicker(2 * interval * time.Second) // Set the time between routine activations.
-	for {
-		select {
-		case <-n.shutdown: // If node server is shutdown, stop the thread.
-			ticker.Stop()
-			return
-		case <-ticker.C: // If it's time, fix the correspondent finger table entry.
-			if count%2 == 0 {
-				n.SetKey(fmt.Sprintf("%d", count), fmt.Sprintf("%d", count))
-			} else {
-				n.GetKey(fmt.Sprintf("%d", count-1))
-			}
-			count++
-		}
-	}
-}
-
 func (n *Node) threadListen(s *grpc.Server) {
 	log.Println("Listen thread started")
 
@@ -132,5 +113,49 @@ func (n *Node) threadListen(s *grpc.Server) {
 	}
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
+	}
+}
+
+// BroadListen listen for broadcast messages.
+func (n *Node) threadBroadListen(broad string) {
+	// Wait for the specific port to be free to use.
+	pc, err := net.ListenPacket("udp4", fmt.Sprintf("0.0.0.0:%s", broad))
+	for err != nil {
+		pc, err = net.ListenPacket("udp4", fmt.Sprintf("0.0.0.0:%s", broad))
+	}
+	// Close the listening socket at the end of function.
+	defer func(pc net.PacketConn) {
+		err := pc.Close()
+		if err != nil {
+			return
+		}
+	}(pc)
+
+	// Start listening messages.
+	for {
+		// If node server is shutdown, return.
+		if !isOpen(n.shutdown) {
+			return
+		}
+
+		// Create the buffer to store the message.
+		buf := make([]byte, 1024)
+		// Wait for a message.
+		n, address, err := pc.ReadFrom(buf)
+		if err != nil {
+			log.Errorf("Incoming broadcast message error.\n%s", err.Error())
+			continue
+		}
+
+		log.Debugf("Incoming response message. %s sent this: %s", address, buf[:n])
+
+		// If the incoming message is the specified one, answer with the specific response.
+		if string(buf[:n]) == "Chord?" {
+			_, err = pc.WriteTo([]byte("I am chord"), address)
+			if err != nil {
+				log.Errorf("Error responding broadcast message.\n%s", err.Error())
+				continue
+			}
+		}
 	}
 }

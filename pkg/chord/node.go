@@ -20,6 +20,7 @@ type Node struct {
 
 	id      *big.Int
 	address string
+	ip      string
 
 	predecessors *my_list.MyList[*Node]
 	predLock     sync.RWMutex
@@ -279,9 +280,10 @@ func (n *Node) SetPartition(ctx context.Context, req *pb.PartitionRequest) (*pb.
 	return &pb.StatusResponse{Ok: true}, nil
 }
 
-func (n *Node) Start(port string) {
+func (n *Node) Start(port string, broad string) {
 	// n.address = fmt.Sprintf("%s:%s", getOutboundIP().String(), port)
 	n.address = fmt.Sprintf("%s:%s", "localhost", port)
+	n.ip = "localhost"
 	n.id = n.hashID(n.address)
 
 	log.Printf("Starting chord server %s\n", n.address)
@@ -300,8 +302,5 @@ func (n *Node) Start(port string) {
 	go n.threadFixSuccessors()
 	go n.threadFixFingers()
 	go n.threadFixStorage()
-
-	if port == "5002" {
-		go n.threadTest()
-	}
+	go n.threadBroadListen(broad)
 }
