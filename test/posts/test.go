@@ -2,13 +2,12 @@ package main
 
 import (
 	"context"
-	"log"
 	"time"
 
+	"github.com/raudel25/social-network-distributed-system/pkg/logging"
 	socialnetwork "github.com/raudel25/social-network-distributed-system/pkg/services"
-	auth_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_auth"
-	db_models_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_db"
-	posts_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_posts"
+	socialnetwork_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -18,6 +17,7 @@ import (
 var token string
 
 func main() {
+	logging.SettingLogger(log.DebugLevel, ".")
 	rsaPrivateKeyPath := "pv.pem"
 	rsaPublicteKeyPath := "pub.pem"
 	network := "tcp"
@@ -39,12 +39,12 @@ func main() {
 		log.Fatalf("Failed to connect: %v", err)
 	}
 
-	auth_client := auth_pb.NewAuthClient(auth_conn)
-	post_cliet := posts_pb.NewPostServiceClient(posts_conn)
+	auth_client := socialnetwork_pb.NewAuthClient(auth_conn)
+	post_cliet := socialnetwork_pb.NewPostServiceClient(posts_conn)
 
 	password, _ := hashPassword("hashedpassword")
 
-	user := &db_models_pb.User{
+	user := &socialnetwork_pb.User{
 		Username:     "anabel",
 		Name:         "Test User",
 		PasswordHash: password,
@@ -62,11 +62,11 @@ func main() {
 	testGetUserPosts(post_cliet, user.Username)                           // [post1, repost1, post2]
 }
 
-func testSignUp(client auth_pb.AuthClient, user *db_models_pb.User) {
+func testSignUp(client socialnetwork_pb.AuthClient, user *socialnetwork_pb.User) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	_, err := client.SignUp(ctx, &auth_pb.SignUpRequest{User: user})
+	_, err := client.SignUp(ctx, &socialnetwork_pb.SignUpRequest{User: user})
 	if err != nil {
 		log.Printf("Error signing up: %v", err)
 	} else {
@@ -74,11 +74,11 @@ func testSignUp(client auth_pb.AuthClient, user *db_models_pb.User) {
 	}
 }
 
-func testLogin(client auth_pb.AuthClient, username, password string) {
+func testLogin(client socialnetwork_pb.AuthClient, username, password string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	response, err := client.Login(ctx, &auth_pb.LoginRequest{
+	response, err := client.Login(ctx, &socialnetwork_pb.LoginRequest{
 		Username: username,
 		Password: password,
 	})
@@ -95,14 +95,14 @@ func hashPassword(password string) (string, error) {
 	return string(bytes), err
 }
 
-func testCreatePost(client posts_pb.PostServiceClient, username string, content string) string {
+func testCreatePost(client socialnetwork_pb.PostServiceClient, username string, content string) string {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	md := metadata.New(map[string]string{"authorization": token})
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	response, err := client.CreatePost(ctx, &posts_pb.CreatePostRequest{
+	response, err := client.CreatePost(ctx, &socialnetwork_pb.CreatePostRequest{
 		UserId:  username,
 		Content: content,
 	})
@@ -116,14 +116,14 @@ func testCreatePost(client posts_pb.PostServiceClient, username string, content 
 	return response.GetPost().PostId
 }
 
-func testGetPost(client posts_pb.PostServiceClient, postId string) {
+func testGetPost(client socialnetwork_pb.PostServiceClient, postId string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	md := metadata.New(map[string]string{"authorization": token})
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	post, err := client.GetPost(ctx, &posts_pb.GetPostRequest{
+	post, err := client.GetPost(ctx, &socialnetwork_pb.GetPostRequest{
 		PostId: postId,
 	})
 
@@ -134,14 +134,14 @@ func testGetPost(client posts_pb.PostServiceClient, postId string) {
 	}
 }
 
-func testRepost(client posts_pb.PostServiceClient, username string, postId string) {
+func testRepost(client socialnetwork_pb.PostServiceClient, username string, postId string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	md := metadata.New(map[string]string{"authorization": token})
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	_, err := client.Repost(ctx, &posts_pb.RepostRequest{
+	_, err := client.Repost(ctx, &socialnetwork_pb.RepostRequest{
 		UserId:         username,
 		OriginalPostId: postId,
 	})
@@ -153,14 +153,14 @@ func testRepost(client posts_pb.PostServiceClient, username string, postId strin
 	}
 }
 
-func testGetUserPosts(client posts_pb.PostServiceClient, username string) {
+func testGetUserPosts(client socialnetwork_pb.PostServiceClient, username string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	md := metadata.New(map[string]string{"authorization": token})
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	response, err := client.GetUserPosts(ctx, &posts_pb.GetUserPostsRequest{
+	response, err := client.GetUserPosts(ctx, &socialnetwork_pb.GetUserPostsRequest{
 		UserId: username,
 	})
 

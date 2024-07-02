@@ -2,13 +2,12 @@ package main
 
 import (
 	"context"
-	"log"
 	"time"
 
+	"github.com/raudel25/social-network-distributed-system/pkg/logging"
 	socialnetwork "github.com/raudel25/social-network-distributed-system/pkg/services"
-	auth_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_auth"
-	db_models_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_db"
-	users_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_users"
+	socialnetwork_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -18,6 +17,7 @@ import (
 var token string
 
 func main() {
+	logging.SettingLogger(log.DebugLevel, ".")
 	rsaPrivateKeyPath := "pv.pem"
 	rsaPublicteKeyPath := "pub.pem"
 	network := "tcp"
@@ -35,31 +35,31 @@ func main() {
 	defer auth_conn.Close()
 
 	// Create a client
-	auth_client := auth_pb.NewAuthClient(auth_conn)
+	auth_client := socialnetwork_pb.NewAuthClient(auth_conn)
 
 	users_conn, err := grpc.NewClient("0.0.0.0:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to connect: %v", err)
 	}
 	defer auth_conn.Close()
-	users_client := users_pb.NewUserServiceClient(users_conn)
+	users_client := socialnetwork_pb.NewUserServiceClient(users_conn)
 
 	password, _ := hashPassword("hashedpassword")
 
-	user1 := &db_models_pb.User{
+	user1 := &socialnetwork_pb.User{
 		Username:     "hola",
 		Name:         "Test User",
 		PasswordHash: password,
 		Email:        "testuser@example.com",
 	}
 
-	user2 := &db_models_pb.User{
+	user2 := &socialnetwork_pb.User{
 		Username:     "anabel",
 		Name:         "Test User",
 		PasswordHash: password,
 		Email:        "testuser@example.com",
 	}
-	editedUser1 := &db_models_pb.User{
+	editedUser1 := &socialnetwork_pb.User{
 		Username: "hola",
 		Name:     "Anabel Benítez",
 		Email:    "testuser@example.com",
@@ -72,14 +72,14 @@ func main() {
 	testEditUser(users_client, editedUser1)                  // not authorized
 }
 
-func testGetUser(client users_pb.UserServiceClient, username string) {
+func testGetUser(client socialnetwork_pb.UserServiceClient, username string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	md := metadata.New(map[string]string{"authorization": token})
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	response, err := client.GetUser(ctx, &users_pb.GetUserRequest{Username: username})
+	response, err := client.GetUser(ctx, &socialnetwork_pb.GetUserRequest{Username: username})
 	if err != nil {
 		log.Printf("Error getting user: %v", err)
 	} else {
@@ -87,14 +87,14 @@ func testGetUser(client users_pb.UserServiceClient, username string) {
 	}
 }
 
-func testEditUser(client users_pb.UserServiceClient, user *db_models_pb.User) {
+func testEditUser(client socialnetwork_pb.UserServiceClient, user *socialnetwork_pb.User) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	md := metadata.New(map[string]string{"authorization": token})
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	_, err := client.EditUser(ctx, &users_pb.EditUserRequest{User: user})
+	_, err := client.EditUser(ctx, &socialnetwork_pb.EditUserRequest{User: user})
 	if err != nil {
 		log.Printf("Error editing user: %v", err)
 	} else {
@@ -104,11 +104,11 @@ func testEditUser(client users_pb.UserServiceClient, user *db_models_pb.User) {
 	testGetUser(client, user.Username)
 }
 
-func testSignUp(client auth_pb.AuthClient, user *db_models_pb.User) {
+func testSignUp(client socialnetwork_pb.AuthClient, user *socialnetwork_pb.User) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	_, err := client.SignUp(ctx, &auth_pb.SignUpRequest{User: user})
+	_, err := client.SignUp(ctx, &socialnetwork_pb.SignUpRequest{User: user})
 	if err != nil {
 		log.Printf("Error signing up: %v", err)
 	} else {
@@ -116,11 +116,11 @@ func testSignUp(client auth_pb.AuthClient, user *db_models_pb.User) {
 	}
 }
 
-func testLogin(client auth_pb.AuthClient, username, password string) {
+func testLogin(client socialnetwork_pb.AuthClient, username, password string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	response, err := client.Login(ctx, &auth_pb.LoginRequest{
+	response, err := client.Login(ctx, &socialnetwork_pb.LoginRequest{
 		Username: username,
 		Password: password,
 	})

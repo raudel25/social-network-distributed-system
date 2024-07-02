@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.6.1
-// source: pkg/services/proto/auth.proto
+// source: pkg/services/proto/auth_service.proto
 
-package auth_pb
+package socialnetwork_pb
 
 import (
 	context "context"
@@ -141,5 +141,5 @@ var Auth_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "pkg/services/proto/auth.proto",
+	Metadata: "pkg/services/proto/auth_service.proto",
 }

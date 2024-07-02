@@ -12,8 +12,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	auth_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_auth"
-	db_models_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_db"
+	socialnetwork_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -22,11 +21,11 @@ import (
 )
 
 type AuthServer struct {
-	*auth_pb.UnimplementedAuthServer
+	*socialnetwork_pb.UnimplementedAuthServer
 	jwtPrivateKey *rsa.PrivateKey
 }
 
-func (server *AuthServer) Login(ctx context.Context, request *auth_pb.LoginRequest) (*auth_pb.LoginResponse, error) {
+func (server *AuthServer) Login(ctx context.Context, request *socialnetwork_pb.LoginRequest) (*socialnetwork_pb.LoginResponse, error) {
 	username := request.GetUsername()
 	exists, err := existsUser(username)
 	if err != nil {
@@ -53,25 +52,25 @@ func (server *AuthServer) Login(ctx context.Context, request *auth_pb.LoginReque
 		return nil, status.Errorf(codes.Internal, "Failed to generate token")
 	}
 
-	return &auth_pb.LoginResponse{Token: tokenString}, nil
+	return &socialnetwork_pb.LoginResponse{Token: tokenString}, nil
 }
 
-func (server *AuthServer) SignUp(ctx context.Context, request *auth_pb.SignUpRequest) (*auth_pb.SignUpResponse, error) {
+func (server *AuthServer) SignUp(ctx context.Context, request *socialnetwork_pb.SignUpRequest) (*socialnetwork_pb.SignUpResponse, error) {
 	user := request.GetUser()
 
 	if !isEmailValid(user.Email) {
-		return &auth_pb.SignUpResponse{}, status.Errorf(codes.InvalidArgument, "Invalid email")
+		return &socialnetwork_pb.SignUpResponse{}, status.Errorf(codes.InvalidArgument, "Invalid email")
 	}
 
 	if exists, err := existsUser(user.Username); exists || err != nil {
-		return &auth_pb.SignUpResponse{}, status.Errorf(codes.InvalidArgument, "Fail to sign up")
+		return &socialnetwork_pb.SignUpResponse{}, status.Errorf(codes.InvalidArgument, "Fail to sign up")
 	}
 
 	if err := saveUser(user); err != nil {
-		return &auth_pb.SignUpResponse{}, status.Errorf(codes.Internal, "Failed to save user: %v", err)
+		return &socialnetwork_pb.SignUpResponse{}, status.Errorf(codes.Internal, "Failed to save user: %v", err)
 	}
 
-	return &auth_pb.SignUpResponse{}, nil
+	return &socialnetwork_pb.SignUpResponse{}, nil
 }
 
 func StartAuthServer(network, address string) {
@@ -99,7 +98,7 @@ func StartAuthServer(network, address string) {
 		),
 	)
 
-	auth_pb.RegisterAuthServer(s, &AuthServer{jwtPrivateKey: privateKey})
+	socialnetwork_pb.RegisterAuthServer(s, &AuthServer{jwtPrivateKey: privateKey})
 
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
@@ -130,7 +129,7 @@ func verifyPassword(hashedPassword, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }
 
-func (server *AuthServer) generateToken(user *db_models_pb.User) (string, error) {
+func (server *AuthServer) generateToken(user *socialnetwork_pb.User) (string, error) {
 	claims := jwt.MapClaims{
 		"exp":   time.Now().Add(time.Hour * 72).Unix(),
 		"iss":   "auth.service",
