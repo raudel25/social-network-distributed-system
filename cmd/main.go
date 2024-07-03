@@ -14,7 +14,10 @@ func main() {
 	broad := flag.String("b", "8000", "Default port broad is 8000")
 	flag.Parse()
 
-	node := chord.NewNode(&chord.Configuration{SuccessorsSize: 5, HashSize: 4}, nil)
+	config := chord.DefaultConfig()
+	storage := chord.NewRamStorage()
+	
+	node := chord.NewNode(config, storage)
 
 	node.Start(*port, *broad)
 
