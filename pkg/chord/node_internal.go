@@ -4,6 +4,12 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"math/big"
+	"net"
+	"strconv"
+	"strings"
+	"time"
+
+	psnet "github.com/shirou/gopsutil/v3/net"
 
 	log "github.com/sirupsen/logrus"
 
@@ -521,7 +527,76 @@ func (n *Node) fixStorage() {
 	}
 }
 
+func getLocalNetworks() ([]*net.IPNet, error) {
+	var networks []*net.IPNet
+
+	interfaces, err := psnet.Interfaces()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, iface := range interfaces {
+		for _, addr := range iface.Addrs {
+			ip, ipnet, err := net.ParseCIDR(addr.Addr)
+			if err != nil {
+				continue
+			}
+
+			if ip.To4() != nil {
+				networks = append(networks, ipnet)
+			}
+		}
+	}
+
+	return networks, nil
+}
+
+func (n *Node) netDiscover(port string) (string, error) {
+	timeOut := 10000
+
+	num, _ := strconv.Atoi(port)
+	broadcastAddr := net.UDPAddr{
+		Port: num,
+		IP:   net.IPv4bcast,
+	}
+
+	conn, err := net.ListenPacket("udp4", fmt.Sprintf(":%s", port))
+	if err != nil {
+		return "", err
+	}
+	defer conn.Close()
+
+	message := []byte("Are you a chord?")
+	conn.WriteTo(message, &broadcastAddr)
+
+	buffer := make([]byte, 1024)
+
+	err = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	if err != nil {
+		log.Error("Error setting deadline for incoming messages.")
+		return "", err
+	}
+
+	for i := 0; i < timeOut; i++ {
+		n, addr, err := conn.ReadFrom(buffer)
+		if err != nil {
+			continue
+		}
+
+		if string(buffer[:n]) == "I am a chord" {
+			ip := strings.Split(addr.String(), ":")[0]
+			log.Infof("Discover a chord in %s", ip)
+			return ip, nil
+		}
+	}
+
+	log.Info("Not found a chord")
+
+	return "", nil
+
+}
 func (n *Node) createRing() {
+	log.Info("Create a chord ring")
 	n.predLock.Lock()
 	n.predecessors.SetIndex(0, n)
 	n.predLock.Unlock()
@@ -531,11 +606,13 @@ func (n *Node) createRing() {
 	n.sucLock.Unlock()
 }
 
-func (n *Node) createRingOrJoin() {
-	if n.config.JoinAddress != "" {
-		err := n.Join(n.config.JoinAddress)
+func (n *Node) createRingOrJoin(broad string, port string) {
+	discover, err := n.netDiscover(broad)
+
+	if err == nil && discover != "" {
+		err := n.Join(fmt.Sprintf("%s:%s", discover, port))
 		if err != nil {
-			log.Println(err.Error())
+			log.Info(err.Error())
 		}
 		return
 	}

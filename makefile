@@ -2,9 +2,8 @@
 GOCMD=go
 GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
-BINARY_NAME=socialnetwork
 
-JOIN ?= ""
+CONTAINER_BROAD ?= 8000
 CONTAINER_PORT ?= 5000
 
 .PHONY: deps
@@ -14,7 +13,7 @@ deps:
 
 .PHONY: dev
 dev:
-	$(GOCMD) run cmd/main.go -p $(CONTAINER_PORT) -j $(JOIN)
+	$(GOCMD) run cmd/main.go -p $(CONTAINER_PORT) -b $(CONTAINER_BROAD)
 
 .PHONY: proto
 proto:
@@ -24,6 +23,7 @@ proto:
 # -------------------------------------------- Docker commands -----------------------------------------------------------------------
 
 PORT ?= 5000
+BROAD ?= 8000
 
 .PHONY: docker-build
 docker-build:
@@ -31,12 +31,12 @@ docker-build:
 
 .PHONY: docker-run
 docker-run:
-	docker run -it --rm -p $(PORT):5000 -v $(PWD):/app socialnetwork
+	docker run -it --rm -p $(PORT):5000 -p $(BROAD):8000 -v $(PWD):/app socialnetwork
 
 .PHONY: docker-dev
 docker-dev:
-	docker run -it --rm -p $(PORT):5000 -v $(PWD):/app socialnetwork make dev
+	docker run -it --rm -p $(PORT):5000 -p $(BROAD):8000 -v $(PWD):/app socialnetwork make dev
 
 .PHONY: docker-proto
 docker-proto:
-	docker run -it --rm -p $(PORT):5000 -v $(PWD):/app socialnetwork make proto
+	docker run -it --rm -p $(PORT):5000 -p $(BROAD):8000 -v $(PWD):/app socialnetwork make proto

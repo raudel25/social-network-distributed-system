@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"net"
 	"os"
 	"strconv"
 
@@ -20,6 +21,7 @@ type Node struct {
 
 	id      *big.Int
 	address string
+	ip      net.IP
 
 	predecessors *my_list.MyList[*Node]
 	predLock     sync.RWMutex
@@ -279,9 +281,10 @@ func (n *Node) SetPartition(ctx context.Context, req *pb.PartitionRequest) (*pb.
 	return &pb.StatusResponse{Ok: true}, nil
 }
 
-func (n *Node) Start(port string) {
-	n.address = fmt.Sprintf("%s:%s", getOutboundIP().String(), port)
-	// n.address = fmt.Sprintf("%s:%s", "localhost", port)
+func (n *Node) Start(port string, broad string) {
+	n.ip = getOutboundIP()
+	n.address = fmt.Sprintf("%s:%s", n.ip.String(), port)
+
 	n.id = n.hashID(n.address)
 
 	log.Printf("Starting chord server %s\n", n.address)
@@ -291,7 +294,7 @@ func (n *Node) Start(port string) {
 
 	log.Printf("Chord server is running address:%s id:%s\n", n.address, n.id.String())
 
-	n.createRingOrJoin()
+	n.createRingOrJoin(broad, port)
 
 	go n.threadListen(s)
 	go n.threadStabilize()
@@ -300,8 +303,5 @@ func (n *Node) Start(port string) {
 	go n.threadFixSuccessors()
 	go n.threadFixFingers()
 	go n.threadFixStorage()
-
-	if port == "5002" {
-		go n.threadTest()
-	}
+	go n.threadBroadListen(broad)
 }
