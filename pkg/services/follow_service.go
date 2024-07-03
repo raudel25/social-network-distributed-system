@@ -28,14 +28,18 @@ func (*FollowServer) FollowUser(ctx context.Context, request *socialnetwork_pb.F
 		return nil, status.Errorf(codes.InvalidArgument, "Cannot follow yourself")
 	}
 
-	if err := checkUsersExist(username, targetUsername); err != nil {
+	if _, err := loadUser(username); err != nil {
+		return nil, err
+	}
+
+	if _, err := loadUser(targetUsername); err != nil {
 		return nil, err
 	}
 
 	following, err := existsInFollowingList(username, targetUsername)
-	
+
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Failed to load following %v", err)
+		return nil, err
 	}
 
 	if following {
@@ -61,14 +65,18 @@ func (*FollowServer) UnfollowUser(ctx context.Context, request *socialnetwork_pb
 		return nil, status.Errorf(codes.InvalidArgument, "Cannot unfollow yourself")
 	}
 
-	if err := checkUsersExist(username, targetUsername); err != nil {
+	if _, err := loadUser(username); err != nil {
+		return nil, err
+	}
+
+	if _, err := loadUser(targetUsername); err != nil {
 		return nil, err
 	}
 
 	following, err := existsInFollowingList(username, targetUsername)
-	
+
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Failed to load following %v", err)
+		return nil, err
 	}
 
 	if !following {
@@ -85,7 +93,7 @@ func (*FollowServer) UnfollowUser(ctx context.Context, request *socialnetwork_pb
 func (*FollowServer) GetFollowing(ctx context.Context, request *socialnetwork_pb.GetFollowingRequest) (*socialnetwork_pb.GetFollowingResponse, error) {
 	username := request.GetUserId()
 
-	if err := checkUsersExist(username); err != nil {
+	if _, err := loadUser(username); err != nil {
 		return nil, err
 	}
 

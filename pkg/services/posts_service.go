@@ -21,14 +21,10 @@ type PostServer struct {
 func (*PostServer) GetPost(_ context.Context, request *socialnetwork_pb.GetPostRequest) (*socialnetwork_pb.GetPostResponse, error) {
 	postId := request.GetPostId()
 
-	if err := checkPostsExist(request.PostId); err != nil {
-		return nil, err
-	}
-
 	post, err := loadPost(postId)
 
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Failed to load post: %v", err)
+		return nil, err
 	}
 
 	return &socialnetwork_pb.GetPostResponse{Post: post}, nil
@@ -53,11 +49,11 @@ func (*PostServer) CreatePost(ctx context.Context, request *socialnetwork_pb.Cre
 	}
 
 	if err := savePost(post); err != nil {
-		return nil, status.Errorf(codes.Internal, "Failed to save post: %v", err)
+		return nil, err
 	}
 
 	if err := addToPostsList(postID, request.GetUserId()); err != nil {
-		return nil, status.Errorf(codes.Internal, "Failed to save post to user: %v", err)
+		return nil, err
 	}
 
 	return &socialnetwork_pb.CreatePostResponse{Post: post}, nil
@@ -65,10 +61,6 @@ func (*PostServer) CreatePost(ctx context.Context, request *socialnetwork_pb.Cre
 
 func (*PostServer) Repost(ctx context.Context, request *socialnetwork_pb.RepostRequest) (*socialnetwork_pb.RepostResponse, error) {
 	if err := checkPermission(ctx, request.GetUserId()); err != nil {
-		return nil, err
-	}
-
-	if err := checkPostsExist(request.OriginalPostId); err != nil {
 		return nil, err
 	}
 
@@ -89,11 +81,11 @@ func (*PostServer) Repost(ctx context.Context, request *socialnetwork_pb.RepostR
 	}
 
 	if err := savePost(post); err != nil {
-		return nil, status.Errorf(codes.Internal, "Failed to save post: %v", err)
+		return nil, err
 	}
 
 	if err := addToPostsList(postID, request.GetUserId()); err != nil {
-		return nil, status.Errorf(codes.Internal, "Failed to save post to user: %v", err)
+		return nil, err
 	}
 
 	return &socialnetwork_pb.RepostResponse{Post: post}, nil
@@ -102,14 +94,14 @@ func (*PostServer) Repost(ctx context.Context, request *socialnetwork_pb.RepostR
 func (*PostServer) GetUserPosts(_ context.Context, request *socialnetwork_pb.GetUserPostsRequest) (*socialnetwork_pb.GetUserPostsResponse, error) {
 	userId := request.GetUserId()
 
-	if err := checkUsersExist(userId); err != nil {
+	if _, err := loadUser(userId); err != nil {
 		return nil, err
 	}
 
 	posts, err := loadPostsList(userId)
 
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Failed to load user posts: %v", err)
+		return nil, err
 	}
 
 	return &socialnetwork_pb.GetUserPostsResponse{Posts: posts}, nil

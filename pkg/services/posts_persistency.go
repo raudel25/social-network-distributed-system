@@ -12,85 +12,79 @@ import (
 
 // ============================================== Post ==========================================================
 
-func existsPost(postId string) (bool, error) {
-	path := filepath.Join("Post", postId)
-	return persistency.FileExists(node, path)
-}
-
-func checkPostsExist(postIds ...string) error {
-	for _, postId := range postIds {
-		exists, err := existsPost(postId)
-		if err != nil {
-			return status.Errorf(codes.Internal, "Failed to check post %s: %v", postId, err)
-		}
-		if !exists {
-			return status.Errorf(codes.NotFound, "Post %s not found", postId)
-		}
-	}
-	return nil
-}
-
 func loadPost(postId string) (*db_models.Post, error) {
 	path := filepath.Join("Post", postId)
+
 	post, err := persistency.Load(node, path, &db_models.Post{})
-	if err != nil {
-		return nil, err
+
+	if checkNotFound(err) {
+		return nil, status.Errorf(codes.NotFound, "Post %s not found", postId)
 	}
+
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Failed to load post: %v", err)
+	}
+
 	return post, nil
 }
 
 func savePost(post *db_models.Post) error {
 	path := filepath.Join("Post", post.PostId)
-	return persistency.Save(node, post, path)
+
+	err := persistency.Save(node, post, path)
+
+	if err != nil {
+		return status.Errorf(codes.Internal, "Failed to save post: %v", err)
+	}
+
+	return nil
 }
 
 // ========================================= User-Post relationship =====================================================
 
 func addToPostsList(postId string, username string) error {
 	path := filepath.Join("User", strings.ToLower(username), "Posts")
-	posts := &db_models.UserPosts{
-		PostsIds: make([]string, 0),
-	}
-	var err error
 
-	exists, err := persistency.FileExists(node, path)
-	if err != nil {
-		return err
-	}
+	posts, err := persistency.Load(node, path, &db_models.UserPosts{})
 
-	if exists {
-		posts, err = persistency.Load(node, path, &db_models.UserPosts{})
-		if err != nil {
-			return err
+	if checkNotFound(err) {
+		posts = &db_models.UserPosts{
+			PostsIds: make([]string, 0),
 		}
+	} else if err != nil {
+		return status.Errorf(codes.Internal, "Failed to load user posts: %v", err)
 	}
 
 	posts.PostsIds = append(posts.PostsIds, postId)
-	return persistency.Save(node, posts, path)
+
+	err = persistency.Save(node, posts, path)
+
+	if err != nil {
+		return status.Errorf(codes.Internal, "Failed to save post to user: %v", err)
+	}
+
+	return nil
 }
 
 func loadPostsList(username string) ([]*db_models.Post, error) {
 	path := filepath.Join("User", strings.ToLower(username), "Posts")
 
-	exists, err := persistency.FileExists(node, path)
-	if err != nil {
-		return nil, err
-	}
-
 	posts := make([]*db_models.Post, 0)
 
-	if !exists {
+	userPosts, err := persistency.Load(node, path, &db_models.UserPosts{})
+
+	if checkNotFound(err) {
 		return posts, nil
 	}
 
-	userPosts, err := persistency.Load(node, path, &db_models.UserPosts{})
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "Failed to load user posts: %v", err)
 	}
+
 	for _, postId := range userPosts.PostsIds {
 		post, err := loadPost(postId)
 		if err != nil {
-			return nil, err
+			return nil, status.Errorf(codes.Internal, "Failed to load post %s in user posts: %v", postId, err)
 		}
 		posts = append(posts, post)
 	}
