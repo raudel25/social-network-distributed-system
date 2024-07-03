@@ -294,7 +294,7 @@ func (n *Node) Start(port string, broad string) {
 
 	log.Printf("Chord server is running address:%s id:%s\n", n.address, n.id.String())
 
-	n.createRingOrJoin()
+	n.createRingOrJoin(broad, port)
 
 	go n.threadListen(s)
 	go n.threadStabilize()
@@ -303,5 +303,5 @@ func (n *Node) Start(port string, broad string) {
 	go n.threadFixSuccessors()
 	go n.threadFixFingers()
 	go n.threadFixStorage()
-	go n.threadBroadListen()
+	go n.threadBroadListen(broad)
 }

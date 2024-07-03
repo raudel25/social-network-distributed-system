@@ -117,31 +117,31 @@ func (n *Node) threadListen(s *grpc.Server) {
 }
 
 // BroadListen listen for broadcast messages.
-func (n *Node) threadBroadListen() {
-	addr := net.UDPAddr{
-		Port: 8000,
-		IP:   n.ip,
-	}
-
-	conn, err := net.ListenUDP("udp", &addr)
+func (n *Node) threadBroadListen(port string) {
+	conn, err := net.ListenPacket("udp4", fmt.Sprintf(":%s", port))
 	if err != nil {
-		fmt.Println("Error setting up UDP listener:", err)
+		log.Error("Error to running udp server")
 		return
 	}
 	defer conn.Close()
 
-	buf := make([]byte, 1024)
+	buffer := make([]byte, 1024)
+
 	for {
-		n, addr, err := conn.ReadFromUDP(buf)
+		n, clientAddr, err := conn.ReadFrom(buffer)
 		if err != nil {
-			fmt.Println("Error reading from UDP:", err)
+			log.Error("Error to read the buffer")
 			continue
 		}
 
-		message := string(buf[:n])
-		if message == "DISCOVER_CHORD_NODES" {
-			fmt.Printf("Received discovery message from %s\n", addr)
-			conn.WriteToUDP([]byte("I am a Chord node"), addr)
+		message := string(buffer[:n])
+		log.Infof("Message receive from %s: %s\n", clientAddr, message)
+
+		if message == "Are you a chord?" {
+			response := []byte("I am a chord")
+			conn.WriteTo(response, clientAddr)
 		}
+
 	}
+
 }
