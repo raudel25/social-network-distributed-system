@@ -40,9 +40,21 @@ type Node struct {
 	shutdown chan struct{}
 }
 
-func NewNode(config *Configuration, storage *Storage) *Node {
-	return &Node{predecessors: my_list.NewMyList[*Node](config.SuccessorsSize), successors: my_list.NewMyList[*Node](config.SuccessorsSize),
-		fingerTable: NewFingerTable(config.HashSize), dictionary: NewRamStorage(), config: config}
+func NewNode(config *Configuration, storage Storage) *Node {
+	return &Node{
+		predecessors: my_list.NewMyList[*Node](config.SuccessorsSize),
+		successors:   my_list.NewMyList[*Node](config.SuccessorsSize),
+		fingerTable:  NewFingerTable(config.HashSize),
+		dictionary:   storage,
+		config:       config,
+	}
+}
+
+// DefaultNode creates and returns a new Node with default configurations.
+func DefaultNode() (*Node, error) {
+	conf := DefaultConfig()       // Creates a default configuration.
+	dictionary := NewRamStorage() // Creates a default dictionary.
+	return NewNode(conf, dictionary), nil
 }
 
 func (n *Node) FindSuccessor(ctx context.Context, req *pb.IdRequest) (*pb.NodeResponse, error) {

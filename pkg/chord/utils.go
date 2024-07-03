@@ -6,8 +6,8 @@ import (
 	"net"
 )
 
-// Checks if the given ID is between the start and end values 
-//(inclusive of start, exclusive of end) in the circular ID space.
+// Checks if the given ID is between the start and end values (inclusive of start, exclusive of end)
+// in the circular ID space.
 func between(id, start, end *big.Int) bool {
 	if start.Cmp(end) <= 0 {
 		return id.Cmp(start) > 0 && id.Cmp(end) < 0
@@ -32,7 +32,7 @@ func strToBig(str string) *big.Int {
 // Determines the IP address that the system would use to communicate with a remote server
 func getOutboundIP() net.IP {
 	// Establish a UDP connection to the Google DNS server at 8.8.8.8:80.
-	// This is done to determine the outbound IP address, 
+	// This is done to determine the outbound IP address,
 	// as the connection will use the appropriate network interface to reach the remote server.
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {

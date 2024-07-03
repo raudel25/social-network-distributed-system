@@ -58,19 +58,27 @@ func main() {
 
 	tests.TestSignUp(auth_client, user1)
 	tests.TestSignUp(auth_client, user2)
-	token, _ = tests.TestLogin(auth_client, user2.Username, "hashedpassword")
 
-	tests.TestGetFollowingUsers(follow_client, user1.Username, token)      // []
-	tests.TestFollow(follow_client, user1.Username, user2.Username, token) // not authorized
+	for {
+		log.Println("========================================================= Start Test ==================================================================")
 
-	tests.TestFollow(follow_client, user2.Username, user1.Username, token) // ok
-	tests.TestFollow(follow_client, user2.Username, user1.Username, token) // already following
-	tests.TestGetFollowingUsers(follow_client, user2.Username, token)      // [user1]
+		token, _ = tests.TestLogin(auth_client, user1.Username, "hashedpassword")
 
-	token, _ = tests.TestLogin(auth_client, user1.Username, "hashedpassword")
-	tests.TestFollow(follow_client, user1.Username, user2.Username, token)   // ok
-	tests.TestGetFollowingUsers(follow_client, user1.Username, token)        // [user2]
-	tests.TestUnfollow(follow_client, user1.Username, user2.Username, token) // ok
-	tests.TestGetFollowingUsers(follow_client, user1.Username, token)        // []
-	tests.TestUnfollow(follow_client, user1.Username, user2.Username, token) // not following
+		tests.TestGetFollowingUsers(follow_client, user1.Username, token) // []
+		tests.TestGetFollowingUsers(follow_client, user2.Username, token) // []
+		
+		tests.TestFollow(follow_client, user1.Username, user2.Username, token) // ok
+
+		time.Sleep(10 * time.Second) // tumbar el nodo de los datos
+
+		tests.TestGetFollowingUsers(follow_client, user1.Username, token)        // [user2]
+		tests.TestUnfollow(follow_client, user1.Username, user2.Username, token) // ok
+
+		time.Sleep(10 * time.Second) // tumbar el nodo de los datos
+
+		tests.TestGetFollowingUsers(follow_client, user1.Username, token)        // []
+		tests.TestUnfollow(follow_client, user1.Username, user2.Username, token) // not following
+
+		time.Sleep(15 * time.Second)
+	}
 }
