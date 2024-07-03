@@ -1,7 +1,6 @@
 package chord
 
 import (
-	"crypto/sha1"
 	"fmt"
 	"math/big"
 	"net"
@@ -304,7 +303,7 @@ func (n *Node) fixFingers(index int) int {
 }
 
 func (n *Node) hashID(key string) *big.Int {
-	hash := sha1.New()
+	hash := n.config.HashFunction()
 	hash.Write([]byte(key))
 	id := new(big.Int).SetBytes(hash.Sum(nil))
 
