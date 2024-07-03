@@ -8,7 +8,7 @@ import (
 	"time"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	socialnetwork_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc"
+	socialnetwork_pb "github.com/raudel25/social-network-distributed-system/internal/services/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

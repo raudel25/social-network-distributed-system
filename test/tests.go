@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	socialnetwork_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc"
+	socialnetwork_pb "github.com/raudel25/social-network-distributed-system/internal/services/grpc"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/metadata"

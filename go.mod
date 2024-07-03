@@ -5,7 +5,6 @@ go 1.20
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
-	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/sirupsen/logrus v1.4.2
 	github.com/t-tomalak/logrus-easy-formatter v0.0.0-20190827215021-c074f06c5816
 	golang.org/x/crypto v0.24.0
@@ -14,10 +13,8 @@ require (
 )
 
 require (
-	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.1 // indirect
-	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
-	github.com/yusufpapurcu/wmi v1.2.4 // indirect
+	github.com/stretchr/testify v1.9.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
