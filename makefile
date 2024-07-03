@@ -2,7 +2,6 @@
 GOCMD=go
 GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
-BINARY_NAME=socialnetwork
 
 CONTAINER_BROAD ?= 8000
 CONTAINER_PORT ?= 5000
@@ -14,7 +13,7 @@ deps:
 
 .PHONY: dev
 dev:
-	$(GOCMD) run cmd/main.go -p $(CONTAINER_PORT) -b $(BROAD)
+	$(GOCMD) run cmd/main.go -p $(CONTAINER_PORT) -b $(CONTAINER_BROAD)
 
 .PHONY: proto
 proto:
