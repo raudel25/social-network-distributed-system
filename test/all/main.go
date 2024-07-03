@@ -3,9 +3,9 @@ package main
 import (
 	"time"
 
+	socialnetwork "github.com/raudel25/social-network-distributed-system/internal/services"
+	socialnetwork_pb "github.com/raudel25/social-network-distributed-system/internal/services/grpc"
 	"github.com/raudel25/social-network-distributed-system/pkg/logging"
-	socialnetwork "github.com/raudel25/social-network-distributed-system/pkg/services"
-	socialnetwork_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc"
 	tests "github.com/raudel25/social-network-distributed-system/test"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -66,7 +66,7 @@ func main() {
 
 		tests.TestGetFollowingUsers(follow_client, user1.Username, token) // []
 		tests.TestGetFollowingUsers(follow_client, user2.Username, token) // []
-		
+
 		tests.TestFollow(follow_client, user1.Username, user2.Username, token) // ok
 
 		time.Sleep(10 * time.Second) // tumbar el nodo de los datos

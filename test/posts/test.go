@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/raudel25/social-network-distributed-system/pkg/logging"
-	socialnetwork "github.com/raudel25/social-network-distributed-system/pkg/services"
-	socialnetwork_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc"
+	socialnetwork "github.com/raudel25/social-network-distributed-system/internal/services"
+	socialnetwork_pb "github.com/raudel25/social-network-distributed-system/internal/services/grpc"
 	tests "github.com/raudel25/social-network-distributed-system/test"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"

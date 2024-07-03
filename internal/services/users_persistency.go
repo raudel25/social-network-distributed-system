@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	db_models "github.com/raudel25/social-network-distributed-system/internal/services/grpc"
 	"github.com/raudel25/social-network-distributed-system/pkg/persistency"
-	db_models "github.com/raudel25/social-network-distributed-system/pkg/services/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

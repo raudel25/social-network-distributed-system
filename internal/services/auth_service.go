@@ -12,7 +12,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	socialnetwork_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc"
+	socialnetwork_pb "github.com/raudel25/social-network-distributed-system/internal/services/grpc"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
