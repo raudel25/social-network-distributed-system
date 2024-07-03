@@ -27,19 +27,11 @@ type AuthServer struct {
 
 func (server *AuthServer) Login(ctx context.Context, request *socialnetwork_pb.LoginRequest) (*socialnetwork_pb.LoginResponse, error) {
 	username := request.GetUsername()
-	exists, err := existsUser(username)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Failed to check user %s: %v", username, err)
-
-	}
-	if !exists {
-		return nil, status.Errorf(codes.PermissionDenied, "Wrong username or password")
-	}
 
 	user, err := loadUser(username)
 
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Failed to load user %s: %v", username, err)
+		return nil, err
 	}
 
 	if err := verifyPassword(user.PasswordHash, request.Password); err != nil {
@@ -67,7 +59,7 @@ func (server *AuthServer) SignUp(ctx context.Context, request *socialnetwork_pb.
 	}
 
 	if err := saveUser(user); err != nil {
-		return &socialnetwork_pb.SignUpResponse{}, status.Errorf(codes.Internal, "Failed to save user: %v", err)
+		return &socialnetwork_pb.SignUpResponse{}, err
 	}
 
 	return &socialnetwork_pb.SignUpResponse{}, nil

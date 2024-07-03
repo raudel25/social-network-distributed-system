@@ -16,19 +16,16 @@ func UnaryServerInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	if err != nil {
 		return nil, err
 	}
-
 	return handler(ctx, req)
 }
 
 // This interceptor is used for streaming gRPC methods.
 func StreamServerInterceptor(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 	ctx := ss.Context()
-
 	_, err := validateRequest(ctx)
 	if err != nil {
 		return err
 	}
-
 	return handler(srv, ss)
 }
 

@@ -50,7 +50,7 @@ func Load[T protoreflect.ProtoMessage](node *chord.Node, path string, result T) 
 	dataStr, err := node.GetKey(fullPath)
 	if err != nil {
 		log.Errorf("Error getting file: %v", err)
-		return empty, status.Errorf(codes.Internal, "")
+		return empty, status.Errorf(codes.NotFound, "")
 	}
 
 	data, err := base64.StdEncoding.DecodeString(*dataStr)

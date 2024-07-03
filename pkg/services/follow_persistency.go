@@ -6,6 +6,7 @@ import (
 
 	"github.com/raudel25/social-network-distributed-system/pkg/persistency"
 	db_models "github.com/raudel25/social-network-distributed-system/pkg/services/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
@@ -13,20 +14,17 @@ import (
 
 func existsInFollowingList(username string, otherUsername string) (bool, error) {
 	path := filepath.Join("User", strings.ToLower(username), "Follow")
-	exists, err := persistency.FileExists(node, path)
-	if err != nil {
-		return false, err
-	}
-	if !exists {
-		return false, nil
-	}
+
 	userFollowed, err := persistency.Load(node, path, &db_models.UserFollows{})
-	if err != nil {
-		return false, err
-	}
-	if userFollowed.FollowingUserIds == nil {
+
+	if checkNotFound(err) {
 		return false, nil
 	}
+
+	if err != nil {
+		return false, status.Errorf(codes.Internal, "Failed to load following %v", err)
+	}
+
 	for _, u := range userFollowed.FollowingUserIds {
 		if u == otherUsername {
 			return true, nil
@@ -37,19 +35,14 @@ func existsInFollowingList(username string, otherUsername string) (bool, error) 
 
 func loadFollowingList(username string) ([]*db_models.User, error) {
 	path := filepath.Join("User", strings.ToLower(username), "Follow")
-	exists, err := persistency.FileExists(node, path)
-
-	if err != nil {
-		return nil, err
-	}
 
 	users := make([]*db_models.User, 0)
 
-	if !exists {
+	userFollows, err := persistency.Load(node, path, &db_models.UserFollows{})
+
+	if checkNotFound(err) {
 		return users, nil
 	}
-
-	userFollows, err := persistency.Load(node, path, &db_models.UserFollows{})
 
 	if err != nil {
 		return nil, err
@@ -60,6 +53,7 @@ func loadFollowingList(username string) ([]*db_models.User, error) {
 		if err != nil {
 			return nil, err
 		}
+		user.PasswordHash = ""
 		users = append(users, user)
 	}
 
@@ -69,22 +63,14 @@ func loadFollowingList(username string) ([]*db_models.User, error) {
 func addToFollowingList(username string, otherUsername string) error {
 	path := filepath.Join("User", strings.ToLower(username), "Follow")
 
-	userFollows := &db_models.UserFollows{
-		FollowingUserIds: make([]string, 0),
-	}
+	userFollows, err := persistency.Load(node, path, &db_models.UserFollows{})
 
-	var err error
-
-	exists, err := persistency.FileExists(node, path)
-	if err != nil {
-		return err
-	}
-
-	if exists {
-		userFollows, err = persistency.Load(node, path, &db_models.UserFollows{})
-		if err != nil {
-			return err
+	if checkNotFound(err) {
+		userFollows = &db_models.UserFollows{
+			FollowingUserIds: make([]string, 0),
 		}
+	} else if err != nil {
+		return err
 	}
 
 	userFollows.FollowingUserIds = append(userFollows.FollowingUserIds, otherUsername)
@@ -94,17 +80,12 @@ func addToFollowingList(username string, otherUsername string) error {
 func removeFromFollowingList(username string, otherUsername string) error {
 	path := filepath.Join("User", strings.ToLower(username), "Follow")
 
-	exists, err := persistency.FileExists(node, path)
-
-	if err != nil {
-		return err
-	}
-
-	if !exists {
-		return status.Errorf(404, "User %s following list not found", username)
-	}
-
 	userFollows, err := persistency.Load(node, path, &db_models.UserFollows{})
+
+	if checkNotFound(err) {
+		return status.Errorf(codes.NotFound, "User %s following list not found", username)
+	}
+
 	if err != nil {
 		return err
 	}
