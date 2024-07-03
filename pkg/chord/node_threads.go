@@ -104,25 +104,6 @@ func (n *Node) threadFixStorage() {
 	}
 }
 
-func (n *Node) threadTest() {
-	count := 0
-	ticker := time.NewTicker(2 * interval * time.Second) // Set the time between routine activations.
-	for {
-		select {
-		case <-n.shutdown: // If node server is shutdown, stop the thread.
-			ticker.Stop()
-			return
-		case <-ticker.C: // If it's time, fix the correspondent finger table entry.
-			if count%2 == 0 {
-				n.SetKey(fmt.Sprintf("%d", count), fmt.Sprintf("%d", count))
-			} else {
-				n.GetKey(fmt.Sprintf("%d", count-1))
-			}
-			count++
-		}
-	}
-}
-
 func (n *Node) threadListen(s *grpc.Server) {
 	log.Println("Listen thread started")
 
@@ -133,4 +114,34 @@ func (n *Node) threadListen(s *grpc.Server) {
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
+}
+
+// BroadListen listen for broadcast messages.
+func (n *Node) threadBroadListen(port string) {
+	conn, err := net.ListenPacket("udp4", fmt.Sprintf(":%s", port))
+	if err != nil {
+		log.Error("Error to running udp server")
+		return
+	}
+	defer conn.Close()
+
+	buffer := make([]byte, 1024)
+
+	for {
+		n, clientAddr, err := conn.ReadFrom(buffer)
+		if err != nil {
+			log.Error("Error to read the buffer")
+			continue
+		}
+
+		message := string(buffer[:n])
+		log.Infof("Message receive from %s: %s\n", clientAddr, message)
+
+		if message == "Are you a chord?" {
+			response := []byte("I am a chord")
+			conn.WriteTo(response, clientAddr)
+		}
+
+	}
+
 }
