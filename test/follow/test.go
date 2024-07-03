@@ -2,13 +2,12 @@ package main
 
 import (
 	"context"
-	"log"
 	"time"
 
+	"github.com/raudel25/social-network-distributed-system/pkg/logging"
 	socialnetwork "github.com/raudel25/social-network-distributed-system/pkg/services"
-	auth_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_auth"
-	db_models_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_db"
-	follow_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_follow"
+	socialnetwork_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -18,6 +17,7 @@ import (
 var token string
 
 func main() {
+	logging.SettingLogger(log.DebugLevel, ".")
 	rsaPrivateKeyPath := "pv.pem"
 	rsaPublicteKeyPath := "pub.pem"
 	network := "tcp"
@@ -39,19 +39,19 @@ func main() {
 		log.Fatalf("Failed to connect: %v", err)
 	}
 
-	auth_client := auth_pb.NewAuthClient(auth_conn)
-	follow_client := follow_pb.NewFollowServiceClient(follow_conn)
+	auth_client := socialnetwork_pb.NewAuthClient(auth_conn)
+	follow_client := socialnetwork_pb.NewFollowServiceClient(follow_conn)
 
 	password, _ := hashPassword("hashedpassword")
 
-	user1 := &db_models_pb.User{
+	user1 := &socialnetwork_pb.User{
 		Username:     "anabel",
 		Name:         "Test User",
 		PasswordHash: password,
 		Email:        "testuser@example.com",
 	}
 
-	user2 := &db_models_pb.User{
+	user2 := &socialnetwork_pb.User{
 		Username:     "adriana",
 		Name:         "jsdsjdb",
 		PasswordHash: password,
@@ -77,11 +77,11 @@ func main() {
 	testUnfollow(follow_client, user1.Username, user2.Username) // not following
 }
 
-func testSignUp(client auth_pb.AuthClient, user *db_models_pb.User) {
+func testSignUp(client socialnetwork_pb.AuthClient, user *socialnetwork_pb.User) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	_, err := client.SignUp(ctx, &auth_pb.SignUpRequest{User: user})
+	_, err := client.SignUp(ctx, &socialnetwork_pb.SignUpRequest{User: user})
 	if err != nil {
 		log.Printf("Error signing up: %v", err)
 	} else {
@@ -89,11 +89,11 @@ func testSignUp(client auth_pb.AuthClient, user *db_models_pb.User) {
 	}
 }
 
-func testLogin(client auth_pb.AuthClient, username, password string) {
+func testLogin(client socialnetwork_pb.AuthClient, username, password string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	response, err := client.Login(ctx, &auth_pb.LoginRequest{
+	response, err := client.Login(ctx, &socialnetwork_pb.LoginRequest{
 		Username: username,
 		Password: password,
 	})
@@ -110,14 +110,14 @@ func hashPassword(password string) (string, error) {
 	return string(bytes), err
 }
 
-func testFollow(client follow_pb.FollowServiceClient, follower string, followed string) {
+func testFollow(client socialnetwork_pb.FollowServiceClient, follower string, followed string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	md := metadata.New(map[string]string{"authorization": token})
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	_, err := client.FollowUser(ctx, &follow_pb.FollowUserRequest{
+	_, err := client.FollowUser(ctx, &socialnetwork_pb.FollowUserRequest{
 		UserId:       follower,
 		TargetUserId: followed,
 	})
@@ -129,14 +129,14 @@ func testFollow(client follow_pb.FollowServiceClient, follower string, followed 
 	}
 }
 
-func testUnfollow(client follow_pb.FollowServiceClient, follower string, followed string) {
+func testUnfollow(client socialnetwork_pb.FollowServiceClient, follower string, followed string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	md := metadata.New(map[string]string{"authorization": token})
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	_, err := client.UnfollowUser(ctx, &follow_pb.UnfollowUserRequest{
+	_, err := client.UnfollowUser(ctx, &socialnetwork_pb.UnfollowUserRequest{
 		UserId:       follower,
 		TargetUserId: followed,
 	})
@@ -148,14 +148,14 @@ func testUnfollow(client follow_pb.FollowServiceClient, follower string, followe
 	}
 }
 
-func testGetFollowingUsers(client follow_pb.FollowServiceClient, username string) {
+func testGetFollowingUsers(client socialnetwork_pb.FollowServiceClient, username string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	md := metadata.New(map[string]string{"authorization": token})
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	response, err := client.GetFollowing(ctx, &follow_pb.GetFollowingRequest{
+	response, err := client.GetFollowing(ctx, &socialnetwork_pb.GetFollowingRequest{
 		UserId: username,
 	})
 

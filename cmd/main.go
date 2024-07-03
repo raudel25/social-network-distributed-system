@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	logging.SettingLogger(log.InfoLevel, ".")
+	logging.SettingLogger(log.DebugLevel, ".")
 	port := flag.String("p", "5000", "Default port is 5000")
 	broad := flag.String("b", "8000", "Default port broad is 8000")
 	flag.Parse()

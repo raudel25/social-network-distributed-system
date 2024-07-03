@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/raudel25/social-network-distributed-system/pkg/persistency"
-	db_models_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_db"
+	db_models "github.com/raudel25/social-network-distributed-system/pkg/services/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -30,16 +30,16 @@ func checkPostsExist(postIds ...string) error {
 	return nil
 }
 
-func loadPost(postId string) (*db_models_pb.Post, error) {
+func loadPost(postId string) (*db_models.Post, error) {
 	path := filepath.Join("Post", postId)
-	post, err := persistency.Load(node, path, &db_models_pb.Post{})
+	post, err := persistency.Load(node, path, &db_models.Post{})
 	if err != nil {
 		return nil, err
 	}
 	return post, nil
 }
 
-func savePost(post *db_models_pb.Post) error {
+func savePost(post *db_models.Post) error {
 	path := filepath.Join("Post", post.PostId)
 	return persistency.Save(node, post, path)
 }
@@ -48,7 +48,7 @@ func savePost(post *db_models_pb.Post) error {
 
 func addToPostsList(postId string, username string) error {
 	path := filepath.Join("User", strings.ToLower(username), "Posts")
-	posts := &db_models_pb.UserPosts{
+	posts := &db_models.UserPosts{
 		PostsIds: make([]string, 0),
 	}
 	var err error
@@ -59,7 +59,7 @@ func addToPostsList(postId string, username string) error {
 	}
 
 	if exists {
-		posts, err = persistency.Load(node, path, &db_models_pb.UserPosts{})
+		posts, err = persistency.Load(node, path, &db_models.UserPosts{})
 		if err != nil {
 			return err
 		}
@@ -69,7 +69,7 @@ func addToPostsList(postId string, username string) error {
 	return persistency.Save(node, posts, path)
 }
 
-func loadPostsList(username string) ([]*db_models_pb.Post, error) {
+func loadPostsList(username string) ([]*db_models.Post, error) {
 	path := filepath.Join("User", strings.ToLower(username), "Posts")
 
 	exists, err := persistency.FileExists(node, path)
@@ -77,13 +77,13 @@ func loadPostsList(username string) ([]*db_models_pb.Post, error) {
 		return nil, err
 	}
 
-	posts := make([]*db_models_pb.Post, 0)
+	posts := make([]*db_models.Post, 0)
 
 	if !exists {
 		return posts, nil
 	}
 
-	userPosts, err := persistency.Load(node, path, &db_models_pb.UserPosts{})
+	userPosts, err := persistency.Load(node, path, &db_models.UserPosts{})
 	if err != nil {
 		return nil, err
 	}

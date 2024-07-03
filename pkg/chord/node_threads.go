@@ -117,45 +117,31 @@ func (n *Node) threadListen(s *grpc.Server) {
 }
 
 // BroadListen listen for broadcast messages.
-func (n *Node) threadBroadListen(broad string) {
-	// Wait for the specific port to be free to use.
-	pc, err := net.ListenPacket("udp4", fmt.Sprintf("0.0.0.0:%s", broad))
-	for err != nil {
-		pc, err = net.ListenPacket("udp4", fmt.Sprintf("0.0.0.0:%s", broad))
+func (n *Node) threadBroadListen() {
+	addr := net.UDPAddr{
+		Port: 8000,
+		IP:   n.ip,
 	}
-	// Close the listening socket at the end of function.
-	defer func(pc net.PacketConn) {
-		err := pc.Close()
-		if err != nil {
-			return
-		}
-	}(pc)
 
-	// Start listening messages.
+	conn, err := net.ListenUDP("udp", &addr)
+	if err != nil {
+		fmt.Println("Error setting up UDP listener:", err)
+		return
+	}
+	defer conn.Close()
+
+	buf := make([]byte, 1024)
 	for {
-		// If node server is shutdown, return.
-		if !isOpen(n.shutdown) {
-			return
-		}
-
-		// Create the buffer to store the message.
-		buf := make([]byte, 1024)
-		// Wait for a message.
-		n, address, err := pc.ReadFrom(buf)
+		n, addr, err := conn.ReadFromUDP(buf)
 		if err != nil {
-			log.Errorf("Incoming broadcast message error.\n%s", err.Error())
+			fmt.Println("Error reading from UDP:", err)
 			continue
 		}
 
-		log.Debugf("Incoming response message. %s sent this: %s", address, buf[:n])
-
-		// If the incoming message is the specified one, answer with the specific response.
-		if string(buf[:n]) == "Chord?" {
-			_, err = pc.WriteTo([]byte("I am chord"), address)
-			if err != nil {
-				log.Errorf("Error responding broadcast message.\n%s", err.Error())
-				continue
-			}
+		message := string(buf[:n])
+		if message == "DISCOVER_CHORD_NODES" {
+			fmt.Printf("Received discovery message from %s\n", addr)
+			conn.WriteToUDP([]byte("I am a Chord node"), addr)
 		}
 	}
 }

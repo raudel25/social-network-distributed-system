@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.6.1
-// source: pkg/services/proto/follow.proto
+// source: pkg/services/proto/follow_service.proto
 
-package follow_pb
+package socialnetwork_pb
 
 import (
 	context "context"
@@ -179,5 +179,5 @@ var FollowService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "pkg/services/proto/follow.proto",
+	Metadata: "pkg/services/proto/follow_service.proto",
 }

@@ -6,17 +6,17 @@ import (
 	"net"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	follow_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc_follow"
+	socialnetwork_pb "github.com/raudel25/social-network-distributed-system/pkg/services/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type FollowServer struct {
-	*follow_pb.UnimplementedFollowServiceServer
+	*socialnetwork_pb.UnimplementedFollowServiceServer
 }
 
-func (*FollowServer) FollowUser(ctx context.Context, request *follow_pb.FollowUserRequest) (*follow_pb.FollowUserResponse, error) {
+func (*FollowServer) FollowUser(ctx context.Context, request *socialnetwork_pb.FollowUserRequest) (*socialnetwork_pb.FollowUserResponse, error) {
 	username := request.GetUserId()
 	targetUsername := request.GetTargetUserId()
 
@@ -33,21 +33,23 @@ func (*FollowServer) FollowUser(ctx context.Context, request *follow_pb.FollowUs
 	}
 
 	following, err := existsInFollowingList(username, targetUsername)
+	
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to load following %v", err)
 	}
+
 	if following {
 		return nil, status.Errorf(codes.AlreadyExists, "Already following user")
 	}
 
-	if err := addToUserFollowingList(username, targetUsername); err != nil {
+	if err := addToFollowingList(username, targetUsername); err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to follow user %v", err)
 	}
 
-	return &follow_pb.FollowUserResponse{}, nil
+	return &socialnetwork_pb.FollowUserResponse{}, nil
 }
 
-func (*FollowServer) UnfollowUser(ctx context.Context, request *follow_pb.UnfollowUserRequest) (*follow_pb.UnfollowUserResponse, error) {
+func (*FollowServer) UnfollowUser(ctx context.Context, request *socialnetwork_pb.UnfollowUserRequest) (*socialnetwork_pb.UnfollowUserResponse, error) {
 	username := request.GetUserId()
 	targetUsername := request.GetTargetUserId()
 
@@ -64,34 +66,36 @@ func (*FollowServer) UnfollowUser(ctx context.Context, request *follow_pb.Unfoll
 	}
 
 	following, err := existsInFollowingList(username, targetUsername)
+	
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to load following %v", err)
 	}
+
 	if !following {
 		return nil, status.Errorf(codes.NotFound, "Not following user")
 	}
 
-	if err := removeFromUserFollowingList(username, targetUsername); err != nil {
+	if err := removeFromFollowingList(username, targetUsername); err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to unfollow user %v", err)
 	}
 
-	return &follow_pb.UnfollowUserResponse{}, nil
+	return &socialnetwork_pb.UnfollowUserResponse{}, nil
 }
 
-func (*FollowServer) GetFollowing(ctx context.Context, request *follow_pb.GetFollowingRequest) (*follow_pb.GetFollowingResponse, error) {
+func (*FollowServer) GetFollowing(ctx context.Context, request *socialnetwork_pb.GetFollowingRequest) (*socialnetwork_pb.GetFollowingResponse, error) {
 	username := request.GetUserId()
 
 	if err := checkUsersExist(username); err != nil {
 		return nil, err
 	}
 
-	following, err := loadFollowing(username)
+	following, err := loadFollowingList(username)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &follow_pb.GetFollowingResponse{Following: following}, nil
+	return &socialnetwork_pb.GetFollowingResponse{Following: following}, nil
 }
 
 func StartFollowService(network, address string) {
@@ -115,7 +119,7 @@ func StartFollowService(network, address string) {
 		),
 	)
 
-	follow_pb.RegisterFollowServiceServer(s, &FollowServer{})
+	socialnetwork_pb.RegisterFollowServiceServer(s, &FollowServer{})
 
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
