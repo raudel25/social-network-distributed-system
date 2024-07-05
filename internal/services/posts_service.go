@@ -104,7 +104,7 @@ func (*PostServer) GetUserPosts(_ context.Context, request *socialnetwork_pb.Get
 		return nil, err
 	}
 
-	posts, err := loadPostsList(userId)
+	posts, err := loadPostDtosList(userId)
 
 	if err != nil {
 		return nil, err
@@ -140,5 +140,79 @@ func StartPostsService(network string, address string) {
 
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
+	}
+}
+
+func loadPostDtosList(username string) ([]*socialnetwork_pb.PostDto, error) {
+	posts := make([]*socialnetwork_pb.PostDto, 0)
+
+	userPosts, err := loadPostsList(username)
+
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Failed to load user posts: %v", err)
+	}
+
+	for _, postId := range userPosts.PostsIds {
+		post, err := loadPostDto(postId)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "Failed to load post %s in user posts: %v", postId, err)
+		}
+		posts = append(posts, post)
+	}
+	return posts, nil
+}
+
+func loadPostDto(postId string) (*socialnetwork_pb.PostDto, error) {
+	post, err := loadPost(postId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	postResponse := postToPostDto(post, socialnetwork_pb.PostType_ORIGINAL)
+
+	if post.OriginalPostId != "" {
+		postResponseOriginal, postType, err := loadOriginalPost(postId, 0)
+
+		// asumimos que un not found es que borraron algun post en el camino
+		if err != nil && !checkNotFound(err) {
+			return nil, err
+		}
+
+		postResponse.PostType = postType
+		postResponse.OriginalPost = postResponseOriginal
+	}
+
+	return postResponse, nil
+}
+
+func loadOriginalPost(postId string, times int) (*socialnetwork_pb.PostDto, socialnetwork_pb.PostType, error) {
+	originalPost, err := loadPost(postId)
+
+	postType := socialnetwork_pb.PostType_REPOST
+
+	if times > 1 {
+		postType = socialnetwork_pb.PostType_REPOST_OF_REPOST
+	}
+
+	if err != nil {
+		return nil, postType, err
+	}
+
+	if originalPost.OriginalPostId == "" {
+		responsePost := postToPostDto(originalPost, socialnetwork_pb.PostType_ORIGINAL)
+		return responsePost, postType, nil
+	}
+
+	return loadOriginalPost(originalPost.OriginalPostId, times+1)
+}
+
+func postToPostDto(post *socialnetwork_pb.Post, postType socialnetwork_pb.PostType) *socialnetwork_pb.PostDto {
+	return &socialnetwork_pb.PostDto{
+		PostId:    post.PostId,
+		UserId:    post.UserId,
+		Content:   post.Content,
+		Timestamp: post.Timestamp,
+		PostType:  postType,
 	}
 }
