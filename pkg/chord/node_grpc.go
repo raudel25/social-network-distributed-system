@@ -52,7 +52,7 @@ func (n *Node) GetSuccessorAndNotify(ctx context.Context, req *pb.NodeIndexReque
 	}
 
 	n.predLock.Lock()
-	if n.predecessors.Len() < num || !equals(n.predecessors.GetIndex(num).id, newNode.id) {
+	if n.predecessors.Len() <= num || !equals(n.predecessors.GetIndex(num).id, newNode.id) {
 		n.predecessors.SetIndex(num, newNode)
 	}
 	n.predLock.Unlock()

@@ -14,6 +14,11 @@ func (q *MyList[T]) GetIndex(index int) T {
 }
 
 func (q *MyList[T]) SetIndex(index int, value T) {
+	if len(q.list) < index {
+		println("holaaaa")
+		// index = len(q.list)
+	}
+
 	newSlice := make([]T, len(q.list)+1)
 
 	copy(newSlice[:index], q.list[:index])
