@@ -114,14 +114,8 @@ func (*PostServer) DeletePost(ctx context.Context, request *socialnetwork_pb.Del
 		return nil, err
 	}
 
-	ok, err := removeFromPostsList(postId, username)
-
-	if err != nil {
+	if err = removeFromPostsList(postId, username); err != nil {
 		return nil, err
-	}
-
-	if !ok {
-		return nil, status.Errorf(codes.NotFound, "Not found post %s in user %s posts", postId, username)
 	}
 
 	return &socialnetwork_pb.DeletePostResponse{}, nil

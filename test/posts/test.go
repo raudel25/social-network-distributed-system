@@ -61,4 +61,5 @@ func main() {
 	tests.TestGetUserPosts(post_cliet, user.Username, token)                           // [post1, repost1, repost2, post2]
 	tests.TestDeletePost(post_cliet, postId, token)                                    // ok
 	tests.TestGetUserPosts(post_cliet, user.Username, token)                           // [post1, repost2, post2]
+	tests.TestDeletePost(post_cliet, postId, token)                                    // not found
 }
