@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.4.0
 // - protoc             v3.12.4
-// source: pkg/services/proto/posts_service.proto
+// source: internal/services/proto/posts_service.proto
 
 package socialnetwork_pb
 
@@ -228,5 +228,5 @@ var PostService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "pkg/services/proto/posts_service.proto",
+	Metadata: "internal/services/proto/posts_service.proto",
 }

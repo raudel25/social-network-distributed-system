@@ -24,6 +24,7 @@ const (
 	Chord_GetSuccessorAndNotify_FullMethodName = "/chord.Chord/GetSuccessorAndNotify"
 	Chord_Notify_FullMethodName                = "/chord.Chord/Notify"
 	Chord_Ping_FullMethodName                  = "/chord.Chord/Ping"
+	Chord_Election_FullMethodName              = "/chord.Chord/Election"
 	Chord_Get_FullMethodName                   = "/chord.Chord/Get"
 	Chord_Set_FullMethodName                   = "/chord.Chord/Set"
 	Chord_SetPartition_FullMethodName          = "/chord.Chord/SetPartition"
@@ -39,6 +40,7 @@ type ChordClient interface {
 	GetSuccessorAndNotify(ctx context.Context, in *NodeIndexRequest, opts ...grpc.CallOption) (*NodeResponse, error)
 	Notify(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 	Ping(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*StatusResponse, error)
+	Election(ctx context.Context, in *ElectionRequest, opts ...grpc.CallOption) (*NodeResponse, error)
 	Get(ctx context.Context, in *KeyRequest, opts ...grpc.CallOption) (*StatusValueResponse, error)
 	Set(ctx context.Context, in *KeyValueRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 	SetPartition(ctx context.Context, in *PartitionRequest, opts ...grpc.CallOption) (*StatusResponse, error)
@@ -103,6 +105,16 @@ func (c *chordClient) Ping(ctx context.Context, in *EmptyRequest, opts ...grpc.C
 	return out, nil
 }
 
+func (c *chordClient) Election(ctx context.Context, in *ElectionRequest, opts ...grpc.CallOption) (*NodeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(NodeResponse)
+	err := c.cc.Invoke(ctx, Chord_Election_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *chordClient) Get(ctx context.Context, in *KeyRequest, opts ...grpc.CallOption) (*StatusValueResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(StatusValueResponse)
@@ -152,6 +164,7 @@ type ChordServer interface {
 	GetSuccessorAndNotify(context.Context, *NodeIndexRequest) (*NodeResponse, error)
 	Notify(context.Context, *NodeRequest) (*StatusResponse, error)
 	Ping(context.Context, *EmptyRequest) (*StatusResponse, error)
+	Election(context.Context, *ElectionRequest) (*NodeResponse, error)
 	Get(context.Context, *KeyRequest) (*StatusValueResponse, error)
 	Set(context.Context, *KeyValueRequest) (*StatusResponse, error)
 	SetPartition(context.Context, *PartitionRequest) (*StatusResponse, error)
@@ -177,6 +190,9 @@ func (UnimplementedChordServer) Notify(context.Context, *NodeRequest) (*StatusRe
 }
 func (UnimplementedChordServer) Ping(context.Context, *EmptyRequest) (*StatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
+}
+func (UnimplementedChordServer) Election(context.Context, *ElectionRequest) (*NodeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Election not implemented")
 }
 func (UnimplementedChordServer) Get(context.Context, *KeyRequest) (*StatusValueResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
@@ -293,6 +309,24 @@ func _Chord_Ping_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Chord_Election_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ElectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChordServer).Election(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Chord_Election_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChordServer).Election(ctx, req.(*ElectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Chord_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(KeyRequest)
 	if err := dec(in); err != nil {
@@ -391,6 +425,10 @@ var Chord_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Ping",
 			Handler:    _Chord_Ping_Handler,
+		},
+		{
+			MethodName: "Election",
+			Handler:    _Chord_Election_Handler,
 		},
 		{
 			MethodName: "Get",

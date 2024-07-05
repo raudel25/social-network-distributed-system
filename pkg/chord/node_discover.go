@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (n *Node) netDiscover(port string) (string, error) {
+func (n *Node) netDiscover(port string) (string, string, error) {
 	timeOut := 10000
 
 	num, _ := strconv.Atoi(port)
@@ -21,7 +21,7 @@ func (n *Node) netDiscover(port string) (string, error) {
 
 	conn, err := net.ListenPacket("udp4", fmt.Sprintf(":%s", port))
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	defer conn.Close()
 
@@ -33,24 +33,26 @@ func (n *Node) netDiscover(port string) (string, error) {
 	err = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 	if err != nil {
 		log.Error("Error setting deadline for incoming messages.")
-		return "", err
+		return "", "", err
 	}
 
 	for i := 0; i < timeOut; i++ {
-		n, addr, err := conn.ReadFrom(buffer)
+		nn, addr, err := conn.ReadFrom(buffer)
 		if err != nil {
 			continue
 		}
 
-		if string(buffer[:n]) == "I am a chord" {
+		res := strings.Split(string(buffer[:nn]), ";")
+
+		if res[0] == "Yes, I am a chord" && len(res) == 2 {
 			ip := strings.Split(addr.String(), ":")[0]
 			log.Infof("Discover a chord in %s", ip)
-			return ip, nil
+			return ip, res[1], nil
 		}
 	}
 
 	log.Info("Not found a chord")
 
-	return "", nil
+	return "", "", nil
 
 }

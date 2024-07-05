@@ -20,6 +20,9 @@ type Node struct {
 	address string
 	ip      net.IP
 
+	leader     *Node
+	leaderLock sync.RWMutex
+
 	predecessors *my_list.MyList[*Node]
 	predLock     sync.RWMutex
 
@@ -76,5 +79,6 @@ func (n *Node) Start(port string, broad string) {
 	go n.threadFixSuccessors()
 	go n.threadFixFingers()
 	go n.threadFixStorage()
+	go n.threadCheckLeader()
 	go n.threadBroadListen(broad)
 }
