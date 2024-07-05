@@ -97,11 +97,11 @@ func TestCreatePost(client socialnetwork_pb.PostServiceClient, username string, 
 
 	if err != nil {
 		log.Printf("Error creating post: %v", err)
+		return ""
 	} else {
 		log.Printf("Post created successfully %v", response.GetPost())
+		return response.GetPost().PostId
 	}
-
-	return response.GetPost().PostId
 }
 
 func TestGetPost(client socialnetwork_pb.PostServiceClient, postId string, token string) {
@@ -122,22 +122,24 @@ func TestGetPost(client socialnetwork_pb.PostServiceClient, postId string, token
 	}
 }
 
-func TestRepost(client socialnetwork_pb.PostServiceClient, username string, postId string, token string) {
+func TestRepost(client socialnetwork_pb.PostServiceClient, username string, postId string, token string) string {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	md := metadata.New(map[string]string{"authorization": token})
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	_, err := client.Repost(ctx, &socialnetwork_pb.RepostRequest{
+	post, err := client.Repost(ctx, &socialnetwork_pb.RepostRequest{
 		UserId:         username,
 		OriginalPostId: postId,
 	})
 
 	if err != nil {
 		log.Printf("Error creating post: %v", err)
+		return ""
 	} else {
 		log.Printf("Post created successfully")
+		return post.Post.PostId
 	}
 }
 

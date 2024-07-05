@@ -55,6 +55,7 @@ message GetPostResponse {
 message RepostRequest {
   string user_id = 1;
   string original_post_id = 2;
+  string content = 3;
 }
 
 message RepostResponse {
