@@ -134,7 +134,7 @@ func (n *Node) Election(ctx context.Context, req *pb.ElectionRequest) (*pb.NodeR
 	return &pb.NodeResponse{Address: selectedLeader.address, Id: selectedLeader.id.String()}, nil
 }
 
-func (n *Node) Join(address string, leader string) error {
+func (n *Node) Join(address string, leaderAddress string) error {
 	log.Printf("Joining to chord ring %s\n", address)
 
 	connection, err := NewGRPConnection(address)
@@ -169,7 +169,7 @@ func (n *Node) Join(address string, leader string) error {
 	n.fingerLock.Unlock()
 
 	n.leaderLock.Lock()
-	n.leader = &Node{id: n.hashID(leader), address: leader}
+	n.leader = &Node{id: n.hashID(leaderAddress), address: leaderAddress}
 	n.leaderLock.Unlock()
 
 	return nil

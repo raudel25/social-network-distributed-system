@@ -10,16 +10,17 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (n *Node) netDiscover(port string) (string, string, error) {
+func (n *Node) netDiscover(broadListen string, broadRequest string) (string, string, error) {
+	log.Info("Discovering a chord ring")
 	timeOut := 10000
 
-	num, _ := strconv.Atoi(port)
+	num, _ := strconv.Atoi(broadListen)
 	broadcastAddr := net.UDPAddr{
 		Port: num,
 		IP:   net.IPv4bcast,
 	}
 
-	conn, err := net.ListenPacket("udp4", fmt.Sprintf(":%s", port))
+	conn, err := net.ListenPacket("udp4", fmt.Sprintf(":%s", broadRequest))
 	if err != nil {
 		return "", "", err
 	}
@@ -55,4 +56,41 @@ func (n *Node) netDiscover(port string) (string, string, error) {
 
 	return "", "", nil
 
+}
+
+func (n *Node) discoverAndJoin(port string, broadListen string, broadRequest string) {
+	n.leaderLock.RLock()
+	leaderId := n.leader.id
+	n.leaderLock.RUnlock()
+
+	if !equals(n.id, leaderId) {
+		return
+	}
+
+	discover, leaderAddress, err := n.netDiscover(broadListen, broadRequest)
+
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+
+	if discover == "" {
+		return
+	}
+
+	if n.hashID(leaderAddress).Cmp(n.id) > 0 {
+		n.sucLock.Lock()
+		n.successors.Clear()
+		n.sucLock.Unlock()
+
+		n.predLock.Lock()
+		n.predecessors.Clear()
+		n.predLock.Unlock()
+
+		err := n.Join(fmt.Sprintf("%s:%s", discover, port), leaderAddress)
+		if err != nil {
+			log.Error(err.Error())
+		}
+		return
+	}
 }

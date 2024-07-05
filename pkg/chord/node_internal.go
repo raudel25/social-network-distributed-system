@@ -36,13 +36,13 @@ func (n *Node) createRing() {
 	n.leaderLock.Unlock()
 }
 
-func (n *Node) createRingOrJoin(broad string, port string) {
-	discover, leader, err := n.netDiscover(broad)
+func (n *Node) createRingOrJoin(broadListen string, broadRequest string, port string) {
+	discover, leaderAddress, err := n.netDiscover(broadListen, broadRequest)
 
 	if err == nil && discover != "" {
-		err := n.Join(fmt.Sprintf("%s:%s", discover, port), leader)
+		err := n.Join(fmt.Sprintf("%s:%s", discover, port), leaderAddress)
 		if err != nil {
-			log.Info(err.Error())
+			log.Error(err.Error())
 		}
 		return
 	}

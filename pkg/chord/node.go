@@ -57,7 +57,7 @@ func DefaultNode() (*Node, error) {
 	return NewNode(conf, dictionary), nil
 }
 
-func (n *Node) Start(port string, broad string) {
+func (n *Node) Start(port string, broadListen string, broadRequest string) {
 	n.ip = getOutboundIP()
 	n.address = fmt.Sprintf("%s:%s", n.ip.String(), port)
 
@@ -70,7 +70,7 @@ func (n *Node) Start(port string, broad string) {
 
 	log.Printf("Chord server is running address:%s id:%s\n", n.address, n.id.String())
 
-	n.createRingOrJoin(broad, port)
+	n.createRingOrJoin(broadListen, broadRequest, port)
 
 	go n.threadListen(s)
 	go n.threadStabilize()
@@ -79,6 +79,7 @@ func (n *Node) Start(port string, broad string) {
 	go n.threadFixSuccessors()
 	go n.threadFixFingers()
 	go n.threadFixStorage()
+	go n.threadDiscoverAndJoin(port, broadListen, broadRequest)
 	go n.threadCheckLeader()
-	go n.threadBroadListen(broad)
+	go n.threadBroadListen(broadListen)
 }
