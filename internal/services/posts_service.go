@@ -97,6 +97,36 @@ func (*PostServer) Repost(ctx context.Context, request *socialnetwork_pb.RepostR
 	return &socialnetwork_pb.RepostResponse{Post: postResponse}, nil
 }
 
+func (*PostServer) DeletePost(ctx context.Context, request *socialnetwork_pb.DeletePostRequest) (*socialnetwork_pb.DeletePostResponse, error) {
+	postId := request.GetPostId()
+	post, err := loadPost(postId)
+	username := post.UserId
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := checkPermission(ctx, username); err != nil {
+		return nil, err
+	}
+
+	if err := removePost(postId); err != nil {
+		return nil, err
+	}
+
+	ok, err := removeFromPostsList(postId, username)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !ok {
+		return nil, status.Errorf(codes.NotFound, "Not found post %s in user %s posts", postId, username)
+	}
+
+	return &socialnetwork_pb.DeletePostResponse{}, nil
+}
+
 func (*PostServer) GetUserPosts(_ context.Context, request *socialnetwork_pb.GetUserPostsRequest) (*socialnetwork_pb.GetUserPostsResponse, error) {
 	userId := request.GetUserId()
 

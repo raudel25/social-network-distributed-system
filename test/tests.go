@@ -143,6 +143,24 @@ func TestRepost(client socialnetwork_pb.PostServiceClient, username string, post
 	}
 }
 
+func TestDeletePost(client socialnetwork_pb.PostServiceClient, postId string, token string) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	md := metadata.New(map[string]string{"authorization": token})
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
+	_, err := client.DeletePost(ctx, &socialnetwork_pb.DeletePostRequest{
+		PostId: postId,
+	})
+
+	if err != nil {
+		log.Printf("Error deleting post: %v", err)
+	} else {
+		log.Printf("Post deleting successfully")
+	}
+}
+
 func TestGetUserPosts(client socialnetwork_pb.PostServiceClient, username string, token string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()

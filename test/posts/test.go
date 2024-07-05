@@ -58,5 +58,7 @@ func main() {
 	postId = tests.TestRepost(post_cliet, user.Username, postId, token)                // ok
 	tests.TestRepost(post_cliet, user.Username, postId, token)                         // ok
 	tests.TestCreatePost(post_cliet, user.Username, "This is a test post 2", token)    // ok
-	tests.TestGetUserPosts(post_cliet, user.Username, token)                           // [post1, repost1, post2]
+	tests.TestGetUserPosts(post_cliet, user.Username, token)                           // [post1, repost1, repost2, post2]
+	tests.TestDeletePost(post_cliet, postId, token)                                    // ok
+	tests.TestGetUserPosts(post_cliet, user.Username, token)                           // [post1, repost2, post2]
 }
