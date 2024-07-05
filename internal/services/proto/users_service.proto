@@ -13,18 +13,12 @@ service UserService{
     rpc EditUser(EditUserRequest) returns (EditUserResponse){}
 }
 
-message UserDto {
-    string username = 1;
-    string name = 2;
-    string email = 3;
-}
-
 message GetUserRequest {
     string username = 1;
 }
 
 message GetUserResponse {
-    UserDto user = 1;
+    User user = 1;
 }
 
 message EditUserRequest {
