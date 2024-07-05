@@ -36,18 +36,14 @@ func (*FollowServer) FollowUser(ctx context.Context, request *socialnetwork_pb.F
 		return nil, err
 	}
 
-	following, err := existsInFollowingList(username, targetUsername)
+	ok, err := addToFollowingList(username, targetUsername)
 
 	if err != nil {
-		return nil, err
-	}
-
-	if following {
-		return nil, status.Errorf(codes.AlreadyExists, "Already following user")
-	}
-
-	if err := addToFollowingList(username, targetUsername); err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to follow user %v", err)
+	}
+
+	if !ok {
+		return nil, status.Errorf(codes.NotFound, "Already following user %s", targetUsername)
 	}
 
 	return &socialnetwork_pb.FollowUserResponse{}, nil
@@ -73,18 +69,14 @@ func (*FollowServer) UnfollowUser(ctx context.Context, request *socialnetwork_pb
 		return nil, err
 	}
 
-	following, err := existsInFollowingList(username, targetUsername)
+	ok, err := removeFromFollowingList(username, targetUsername)
 
 	if err != nil {
-		return nil, err
-	}
-
-	if !following {
-		return nil, status.Errorf(codes.NotFound, "Not following user")
-	}
-
-	if err := removeFromFollowingList(username, targetUsername); err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to unfollow user %v", err)
+	}
+
+	if !ok {
+		return nil, status.Errorf(codes.NotFound, "Not following user %s", targetUsername)
 	}
 
 	return &socialnetwork_pb.UnfollowUserResponse{}, nil
@@ -97,7 +89,7 @@ func (*FollowServer) GetFollowing(ctx context.Context, request *socialnetwork_pb
 		return nil, err
 	}
 
-	following, err := loadFollowingList(username)
+	following, err := loadFollowingListDtos(username)
 
 	if err != nil {
 		return nil, err
@@ -132,4 +124,25 @@ func StartFollowService(network, address string) {
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}
+}
+
+func loadFollowingListDtos(username string) ([]*socialnetwork_pb.User, error) {
+	users := make([]*socialnetwork_pb.User, 0)
+
+	userFollows, err := loadFollowingList(username)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, userId := range userFollows.FollowingUserIds {
+		user, err := loadUser(userId)
+		if err != nil {
+			return nil, err
+		}
+		user.PasswordHash = ""
+		users = append(users, user)
+	}
+
+	return users, nil
 }
