@@ -28,6 +28,22 @@ func loadPost(postId string) (*db_models.Post, error) {
 	return post, nil
 }
 
+func removePost(postId string) error {
+	path := filepath.Join("Post", postId)
+
+	err := persistency.Delete(node, path)
+
+	if checkNotFound(err) {
+		return status.Errorf(codes.NotFound, "Post %s not found", postId)
+	}
+
+	if err != nil {
+		return status.Errorf(codes.Internal, "Failed to remove post: %v", err)
+	}
+
+	return nil
+}
+
 func savePost(post *db_models.Post) error {
 	path := filepath.Join("Post", post.PostId)
 
@@ -60,6 +76,27 @@ func addToPostsList(postId string, username string) error {
 	}
 
 	return nil
+}
+
+func removeFromPostsList(postId string, username string) (bool, error) {
+	path := filepath.Join("User", strings.ToLower(username), "Posts")
+
+	posts, err := loadPostsList(username)
+
+	if err != nil {
+		return false, err
+	}
+
+	ok := false
+
+	for i, u := range posts.PostsIds {
+		if u == postId {
+			posts.PostsIds = append(posts.PostsIds[:i], posts.PostsIds[i+1:]...)
+			ok = true
+		}
+	}
+
+	return ok, persistency.Save(node, posts, path)
 }
 
 func loadPostsList(username string) (*db_models.UserPosts, error) {
