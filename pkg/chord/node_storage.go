@@ -181,7 +181,6 @@ func (n *Node) fixStorage() {
 	n.sucLock.RUnlock()
 
 	n.predLock.Lock()
-	println(n.predecessors.Len())
 	for n.predecessors.Len() > len {
 		n.predecessors.RemoveIndex(n.predecessors.Len() - 1)
 		if n.predecessors.Len() == 0 {
