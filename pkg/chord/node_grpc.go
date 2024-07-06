@@ -52,7 +52,10 @@ func (n *Node) GetSuccessorAndNotify(ctx context.Context, req *pb.NodeIndexReque
 	}
 
 	n.predLock.Lock()
-	if n.predecessors.Len() < num || !equals(n.predecessors.GetIndex(num).id, newNode.id) {
+	if n.predecessors.Len() <= num || !equals(n.predecessors.GetIndex(num).id, newNode.id) {
+		if n.predecessors.Len() < num {
+			num = n.predecessors.Len()
+		}
 		n.predecessors.SetIndex(num, newNode)
 	}
 	n.predLock.Unlock()
@@ -91,7 +94,47 @@ func (n *Node) Ping(ctx context.Context, req *pb.EmptyRequest) (*pb.StatusRespon
 	return &pb.StatusResponse{Ok: true}, nil
 }
 
-func (n *Node) Join(address string) error {
+func (n *Node) Election(ctx context.Context, req *pb.ElectionRequest) (*pb.NodeResponse, error) {
+	selectedLeader := &Node{id: strToBig(req.SelectedLeaderId), address: req.SelectedLeaderAddress}
+	firstId := strToBig(req.FirstId)
+
+	if n.id.Cmp(selectedLeader.id) > 0 {
+		selectedLeader = n
+	}
+
+	n.sucLock.RLock()
+	suc := n.successors.GetIndex(0)
+	n.sucLock.RUnlock()
+
+	if equals(suc.id, n.id) || equals(suc.id, firstId) {
+		n.leaderLock.Lock()
+		n.leader = selectedLeader
+		n.leaderLock.Unlock()
+
+		return &pb.NodeResponse{Address: selectedLeader.address, Id: selectedLeader.id.String()}, nil
+	}
+
+	connection, err := NewGRPConnection(suc.address)
+	if err != nil {
+		return nil, err
+	}
+	defer connection.close()
+
+	res, err := connection.client.Election(connection.ctx, &pb.ElectionRequest{FirstId: firstId.String(), SelectedLeaderId: selectedLeader.id.String(), SelectedLeaderAddress: selectedLeader.address})
+	if err != nil {
+		return nil, err
+	}
+
+	selectedLeader = &Node{id: strToBig(res.Id), address: res.Address}
+
+	n.leaderLock.Lock()
+	n.leader = selectedLeader
+	n.leaderLock.Unlock()
+
+	return &pb.NodeResponse{Address: selectedLeader.address, Id: selectedLeader.id.String()}, nil
+}
+
+func (n *Node) Join(address string, leaderAddress string) error {
 	log.Printf("Joining to chord ring %s\n", address)
 
 	connection, err := NewGRPConnection(address)
@@ -124,6 +167,10 @@ func (n *Node) Join(address string) error {
 	n.fingerLock.Lock()
 	n.fingerTable[0] = newNode
 	n.fingerLock.Unlock()
+
+	n.leaderLock.Lock()
+	n.leader = &Node{id: n.hashID(leaderAddress), address: leaderAddress}
+	n.leaderLock.Unlock()
 
 	return nil
 }

@@ -11,15 +11,16 @@ import (
 func main() {
 	logging.SettingLogger(log.DebugLevel, ".")
 	port := flag.String("p", "5000", "Default port is 5000")
-	broad := flag.String("b", "8000", "Default port broad is 8000")
+	broadListen := flag.String("bl", "6000", "Default port broad is 6000")
+	broadRequest := flag.String("br", "7000", "Default port broad is 7000")
 	flag.Parse()
 
 	config := chord.DefaultConfig()
 	storage := chord.NewRamStorage()
-	
+
 	node := chord.NewNode(config, storage)
 
-	node.Start(*port, *broad)
+	node.Start(*port, *broadListen, *broadRequest)
 
 	for {
 	}

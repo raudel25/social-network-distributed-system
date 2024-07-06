@@ -8,7 +8,7 @@ import (
 
 // Checks if the given ID is between the start and end values (inclusive of start, exclusive of end)
 // in the circular ID space.
-func between(id, start, end *big.Int) bool {
+func between(id *big.Int, start *big.Int, end *big.Int) bool {
 	if start.Cmp(end) <= 0 {
 		return id.Cmp(start) > 0 && id.Cmp(end) < 0
 	} else {

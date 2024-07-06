@@ -57,6 +57,21 @@ func (n *Node) threadCheckSuccessor() {
 	}
 }
 
+func (n *Node) threadCheckLeader() {
+	log.Println("Check leader thread started")
+
+	ticker := time.NewTicker(interval * time.Second)
+	for {
+		select {
+		case <-n.shutdown:
+			ticker.Stop()
+			return
+		case <-ticker.C:
+			n.checkLeader()
+		}
+	}
+}
+
 func (n *Node) threadFixSuccessors() {
 	log.Println("Check fix successors thread started")
 
@@ -104,6 +119,21 @@ func (n *Node) threadFixStorage() {
 	}
 }
 
+func (n *Node) threadDiscoverAndJoin(port string, broadListen string, broadRequest string) {
+	log.Println("Fix storage thread discover and join started")
+
+	ticker := time.NewTicker(interval * time.Second)
+	for {
+		select {
+		case <-n.shutdown:
+			ticker.Stop()
+			return
+		case <-ticker.C:
+			n.discoverAndJoin(port, broadListen, broadRequest)
+		}
+	}
+}
+
 func (n *Node) threadListen(s *grpc.Server) {
 	log.Println("Listen thread started")
 
@@ -128,17 +158,30 @@ func (n *Node) threadBroadListen(port string) {
 	buffer := make([]byte, 1024)
 
 	for {
-		n, clientAddr, err := conn.ReadFrom(buffer)
+		nn, clientAddr, err := conn.ReadFrom(buffer)
 		if err != nil {
 			log.Error("Error to read the buffer")
 			continue
 		}
 
-		message := string(buffer[:n])
-		log.Infof("Message receive from %s: %s\n", clientAddr, message)
+		n.leaderLock.RLock()
+		leaderId := n.leader.id
+		n.leaderLock.RUnlock()
+
+		if !equals(leaderId, n.id) {
+
+			continue
+		}
+
+		message := string(buffer[:nn])
+		log.Infof("Message receive from %s: %s", clientAddr, message)
 
 		if message == "Are you a chord?" {
-			response := []byte("I am a chord")
+			n.leaderLock.RLock()
+			leader := n.leader
+			n.leaderLock.RUnlock()
+
+			response := []byte(fmt.Sprintf("Yes, I am a chord;%s", leader.address))
 			conn.WriteTo(response, clientAddr)
 		}
 
