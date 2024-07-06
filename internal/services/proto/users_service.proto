@@ -25,12 +25,5 @@ message EditUserRequest {
     User user = 1;
 }
 
-message EditUserResponse{
-}
-
-message DeleteUserRequest {
-    string username = 1;
-}
-
-message DeleteUserResponse {
+message EditUserResponse {
 }
