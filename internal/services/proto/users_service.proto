@@ -1,9 +1,9 @@
 syntax="proto3";
 
 package socialnetwork;
-option go_package = "pkg/services/grpc;socialnetwork_pb";
+option go_package = "internal/services/grpc;socialnetwork_pb";
 
-import "pkg/services/proto/db_models.proto";
+import "internal/services/proto/db_models.proto";
 
 service UserService{
     // Get a user
@@ -25,12 +25,5 @@ message EditUserRequest {
     User user = 1;
 }
 
-message EditUserResponse{
-}
-
-message DeleteUserRequest {
-    string username = 1;
-}
-
-message DeleteUserResponse {
+message EditUserResponse {
 }

@@ -76,6 +76,7 @@ func Delete(node *chord.Node, path string) error {
 
 	err := node.RemoveKey(fullPath)
 	if err != nil {
+		// TODO not found
 		log.Errorf("Error deleting file: %v", err)
 		return status.Error(codes.Internal, "Couldn't delete file")
 	}

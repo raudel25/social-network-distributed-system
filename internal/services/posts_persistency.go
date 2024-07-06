@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/raudel25/social-network-distributed-system/pkg/persistency"
 	db_models "github.com/raudel25/social-network-distributed-system/internal/services/grpc"
+	"github.com/raudel25/social-network-distributed-system/pkg/persistency"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -28,6 +28,18 @@ func loadPost(postId string) (*db_models.Post, error) {
 	return post, nil
 }
 
+func removePost(postId string) error {
+	path := filepath.Join("Post", postId)
+
+	err := persistency.Delete(node, path)
+
+	if err != nil {
+		return status.Errorf(codes.Internal, "Failed to remove post: %v", err)
+	}
+
+	return nil
+}
+
 func savePost(post *db_models.Post) error {
 	path := filepath.Join("Post", post.PostId)
 
@@ -45,14 +57,10 @@ func savePost(post *db_models.Post) error {
 func addToPostsList(postId string, username string) error {
 	path := filepath.Join("User", strings.ToLower(username), "Posts")
 
-	posts, err := persistency.Load(node, path, &db_models.UserPosts{})
+	posts, err := loadPostsList(username)
 
-	if checkNotFound(err) {
-		posts = &db_models.UserPosts{
-			PostsIds: make([]string, 0),
-		}
-	} else if err != nil {
-		return status.Errorf(codes.Internal, "Failed to load user posts: %v", err)
+	if err != nil {
+		return err
 	}
 
 	posts.PostsIds = append(posts.PostsIds, postId)
@@ -66,27 +74,37 @@ func addToPostsList(postId string, username string) error {
 	return nil
 }
 
-func loadPostsList(username string) ([]*db_models.Post, error) {
+func removeFromPostsList(postId string, username string) error {
 	path := filepath.Join("User", strings.ToLower(username), "Posts")
 
-	posts := make([]*db_models.Post, 0)
+	posts, err := loadPostsList(username)
+
+	if err != nil {
+		return err
+	}
+
+	for i, u := range posts.PostsIds {
+		if u == postId {
+			posts.PostsIds = append(posts.PostsIds[:i], posts.PostsIds[i+1:]...)
+			break
+		}
+	}
+
+	return persistency.Save(node, posts, path)
+}
+
+func loadPostsList(username string) (*db_models.UserPosts, error) {
+	path := filepath.Join("User", strings.ToLower(username), "Posts")
 
 	userPosts, err := persistency.Load(node, path, &db_models.UserPosts{})
 
 	if checkNotFound(err) {
-		return posts, nil
+		return &db_models.UserPosts{PostsIds: make([]string, 0)}, nil
 	}
 
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to load user posts: %v", err)
 	}
 
-	for _, postId := range userPosts.PostsIds {
-		post, err := loadPost(postId)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "Failed to load post %s in user posts: %v", postId, err)
-		}
-		posts = append(posts, post)
-	}
-	return posts, nil
+	return userPosts, nil
 }
