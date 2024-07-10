@@ -3,9 +3,9 @@ GOCMD=go
 GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
 
-CONTAINER_PORT ?= 5000
-CONTAINER_BL ?= 6000
-CONTAINER_BR ?= 7000
+CONTAINER_PORT ?= 10000
+CONTAINER_BL ?= 11000
+CONTAINER_BR ?= 12000
 
 .PHONY: deps
 deps:
@@ -23,9 +23,9 @@ proto:
 
 # -------------------------------------------- Docker commands -----------------------------------------------------------------------
 
-PORT ?= 5000
-BL ?= 6000
-BR ?= 7000
+PORT ?= 10000
+BL ?= 11000
+BR ?= 12000
 
 .PHONY: docker-build
 docker-build:
@@ -33,12 +33,12 @@ docker-build:
 
 .PHONY: docker-run
 docker-run:
-	docker run -it --rm -p $(PORT):5000 -p $(BL):6000 -p $(BR):7000 -v $(PWD):/app socialnetwork
+	docker run -it --rm -p $(PORT):10000 -p $(BL):11000 -p $(BR):12000 -v $(PWD):/app socialnetwork
 
 .PHONY: docker-dev
 docker-dev:
-	docker run -it --rm -p $(PORT):5000 -p $(BL):6000 -p $(BR):7000 -v $(PWD):/app socialnetwork make dev
+	docker run -it --rm -p $(PORT):10000 -p $(BL):11000 -p $(BR):12000 -v $(PWD):/app socialnetwork make dev
 
 .PHONY: docker-proto
 docker-proto:
-	docker run -it --rm -p $(PORT):5000 -p $(BL):6000 -p $(BR):7000 -v $(PWD):/app socialnetwork make proto
+	docker run -it --rm -p $(PORT):10000 -p $(BL):11000 -p $(BR):12000 -v $(PWD):/app socialnetwork make proto

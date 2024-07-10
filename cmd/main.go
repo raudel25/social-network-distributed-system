@@ -10,9 +10,9 @@ import (
 
 func main() {
 	logging.SettingLogger(log.DebugLevel, ".")
-	port := flag.String("p", "5000", "Default port is 5000")
-	broadListen := flag.String("bl", "6000", "Default port broad is 6000")
-	broadRequest := flag.String("br", "7000", "Default port broad is 7000")
+	port := flag.String("p", "10000", "Default port is 10000")
+	broadListen := flag.String("bl", "11000", "Default port broad is 11000")
+	broadRequest := flag.String("br", "12000", "Default port broad is 12000")
 	flag.Parse()
 
 	config := chord.DefaultConfig()
