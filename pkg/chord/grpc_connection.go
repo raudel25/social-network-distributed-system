@@ -21,7 +21,7 @@ func NewGRPConnection(address string) (*GRPCConnection, error) {
 	}
 
 	client := pb.NewChordClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 	return &GRPCConnection{client: client, ctx: ctx, close: func() { conn.Close(); cancel() }}, nil
 }

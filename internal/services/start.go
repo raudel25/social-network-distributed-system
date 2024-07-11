@@ -24,9 +24,9 @@ func Start(rsaPrivateKeyPath string, rsaPublicteKeyPath string, network string) 
 		log.Fatalf("Can't start chord node")
 	}
 
-	port := "50050"
-	broadListen := "6000"
-	broadRequest := "7000"
+	port := "10000"
+	broadListen := "11000"
+	broadRequest := "12000"
 	node.Start(port, broadListen, broadRequest)
 
 	go StartUserService(network, "0.0.0.0:50051")

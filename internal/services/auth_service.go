@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -97,6 +98,8 @@ func StartAuthServer(network, address string) {
 	}
 }
 
+// ===============================================================================================================================================
+
 func validateRequest(ctx context.Context) (*jwt.Token, error) {
 	publicKey, err := loadPublicKey(rsaPublic)
 	if err != nil {
@@ -112,6 +115,7 @@ func validateRequest(ctx context.Context) (*jwt.Token, error) {
 	}
 	token, err := validateToken(jwtToken[0], publicKey)
 	if err != nil {
+		log.Printf("Error validating token: %v", err)
 		return nil, status.Errorf(codes.Unauthenticated, "Valid token required.")
 	}
 	return token, nil
@@ -134,13 +138,40 @@ func (server *AuthServer) generateToken(user *socialnetwork_pb.User) (string, er
 	return token.SignedString(server.jwtPrivateKey)
 }
 
+// func validateToken(token string, publicKey *rsa.PublicKey) (*jwt.Token, error) {
+// 	return jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+// 		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
+// 			return nil, errors.New("invalid token")
+// 		}
+// 		return publicKey, nil
+// 	})
+// }
+
 func validateToken(token string, publicKey *rsa.PublicKey) (*jwt.Token, error) {
-	return jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+	parsedToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, errors.New("invalid token")
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
 		return publicKey, nil
 	})
+
+	if err != nil {
+		if ve, ok := err.(*jwt.ValidationError); ok {
+			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+				return nil, fmt.Errorf("malformed token: %v", err)
+			} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
+				return nil, fmt.Errorf("token is either expired or not active yet: %v", err)
+			} else {
+				return nil, fmt.Errorf("couldn't handle this token: %v", err)
+			}
+		}
+	}
+
+	if !parsedToken.Valid {
+		return nil, errors.New("invalid token")
+	}
+
+	return parsedToken, nil
 }
 
 func extractUsernameFromToken(token *jwt.Token) (string, error) {

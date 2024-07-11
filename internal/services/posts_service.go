@@ -167,6 +167,8 @@ func StartPostsService(network string, address string) {
 	}
 }
 
+// ==============================================================================================================================================
+
 func loadPostDtosList(username string) ([]*socialnetwork_pb.PostDto, error) {
 	posts := make([]*socialnetwork_pb.PostDto, 0)
 
