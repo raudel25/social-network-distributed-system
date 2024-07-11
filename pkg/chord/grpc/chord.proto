@@ -11,6 +11,7 @@ service Chord {
   rpc GetSuccessorAndNotify (NodeIndexRequest) returns (NodeResponse); 
   rpc Notify (NodeRequest) returns (StatusResponse);
   rpc Ping (EmptyRequest) returns (StatusResponse);
+  rpc Election (ElectionRequest) returns (NodeResponse);
 
   rpc Get(KeyRequest) returns (StatusValueResponse);
   rpc Set(KeyValueRequest) returns (StatusResponse);
@@ -43,12 +44,18 @@ message NodeResponse {
 }
 
 message StatusResponse {
-  bool ok = 1;
+  bool Ok = 1;
 }
 
-message StatusValueResponse{
-  bool ok = 1;
-  string value = 2;
+message StatusValueResponse {
+  bool Ok = 1;
+  string Value = 2;
+}
+
+message ElectionRequest {
+  string SelectedLeaderId = 1;
+  string SelectedLeaderAddress = 2; 
+  string FirstId = 4;
 }
 
 message KeyRequest{

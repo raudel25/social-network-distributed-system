@@ -176,6 +176,20 @@ func (n *Node) newPredecessorStorage() {
 func (n *Node) fixStorage() {
 	log.Println("Fixing storage")
 
+	n.sucLock.RLock()
+	len := n.successors.Len()
+	n.sucLock.RUnlock()
+
+	n.predLock.Lock()
+	for n.predecessors.Len() > len {
+		n.predecessors.RemoveIndex(n.predecessors.Len() - 1)
+		if n.predecessors.Len() == 0 {
+			n.predecessors.SetIndex(0, n)
+			break
+		}
+	}
+	n.predLock.Unlock()
+
 	n.predLock.RLock()
 	pred := n.predecessors.GetIndex(n.predecessors.Len() - 1)
 	n.predLock.RUnlock()

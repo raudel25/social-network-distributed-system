@@ -39,3 +39,7 @@ func (q *MyList[T]) RemoveIndex(index int) {
 func (q *MyList[T]) Len() int {
 	return len(q.list)
 }
+
+func (q *MyList[T]) Clear() {
+	q.list = make([]T, 0)
+}

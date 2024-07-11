@@ -148,11 +148,18 @@ func (n *Node) checkPredecessor() {
 func (n *Node) fixSuccessors(index int) int {
 	log.Println("Fix successors")
 
+	var suc *Node
 	n.sucLock.RLock()
-	suc := n.successors.GetIndex(index)
 	len := n.successors.Len()
+	if index < len {
+		suc = n.successors.GetIndex(index)
+	}
 	last := n.successors.GetIndex(len - 1)
 	n.sucLock.RUnlock()
+
+	if suc == nil {
+		return 0
+	}
 
 	if suc.id == n.id && len == 1 {
 		return 0
