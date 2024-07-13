@@ -32,7 +32,11 @@ func (server *AuthServer) Login(ctx context.Context, request *socialnetwork_pb.L
 	user, err := loadUser(username)
 
 	if err != nil {
-		return nil, err
+		if status.Code(err) == codes.NotFound {
+			return nil, status.Errorf(codes.PermissionDenied, "Wrong username or password")
+		} else {
+			return nil, err
+		}
 	}
 
 	if err := verifyPassword(user.PasswordHash, request.Password); err != nil {

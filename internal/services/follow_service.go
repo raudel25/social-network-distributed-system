@@ -126,6 +126,8 @@ func StartFollowService(network, address string) {
 	}
 }
 
+// ==============================================================================================================================================
+
 func loadFollowingUsenamesList(username string) ([]string, error) {
 	users := make([]string, 0)
 

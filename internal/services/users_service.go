@@ -8,6 +8,8 @@ import (
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	socialnetwork_pb "github.com/raudel25/social-network-distributed-system/internal/services/grpc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type UserServer struct {
@@ -34,11 +36,20 @@ func (s *UserServer) EditUser(ctx context.Context, request *socialnetwork_pb.Edi
 		return nil, err
 	}
 
-	if _, err := loadUser(username); err != nil {
+	user, err := loadUser(username)
+
+	if err != nil {
 		return nil, err
 	}
 
-	if err := saveUser(request.GetUser()); err != nil {
+	if !isEmailValid(request.User.GetEmail()) {
+		return &socialnetwork_pb.EditUserResponse{}, status.Errorf(codes.InvalidArgument, "Invalid email")
+	}
+
+	user.Name = request.User.GetName()
+	user.Email = request.User.GetEmail()
+
+	if err := saveUser(user); err != nil {
 		return nil, err
 	}
 
