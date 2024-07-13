@@ -17,6 +17,7 @@ service Chord {
   rpc Get(KeyRequest) returns (StatusValueResponse);
   rpc Set(KeyValueRequest) returns (StatusResponse);
   rpc SetPartition(PartitionRequest) returns (StatusResponse);
+  rpc ResolveData(PartitionRequest) returns (ResolveDataResponse); 
   rpc Remove(KeyRequest) returns (StatusResponse);
 }
 
@@ -72,6 +73,11 @@ message KeyValueRequest{
 }
 
 message PartitionRequest{
+  map<string, string> dict = 1;  
+  map<string, int64> version = 2;
+}
+
+message ResolveDataResponse {
   map<string, string> dict = 1;  
   map<string, int64> version = 2;
 }

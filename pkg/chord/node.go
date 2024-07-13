@@ -74,9 +74,10 @@ func (n *Node) Start(port string, broadListen string, broadRequest string) {
 
 	log.Printf("Chord server is running address:%s id:%s\n", n.address, n.id.String())
 
+	go n.threadListen(s)
+
 	n.createRingOrJoin(broadListen, broadRequest, port)
 
-	go n.threadListen(s)
 	go n.threadStabilize()
 	go n.threadCheckPredecessor()
 	go n.threadCheckSuccessor()

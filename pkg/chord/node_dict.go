@@ -135,3 +135,29 @@ func (n *Node) SetPartition(ctx context.Context, req *pb.PartitionRequest) (*pb.
 
 	return &pb.StatusResponse{Ok: true}, nil
 }
+
+func (n *Node) ResolveData(ctx context.Context, req *pb.PartitionRequest) (*pb.ResolveDataResponse, error) {
+	log.Println("Resolve data versions")
+	newDict := make(map[string]Data)
+	resDictValue := make(map[string]string)
+	resDictVersion := make(map[string]int64)
+
+	n.dictLock.Lock()
+	defer n.dictLock.Unlock()
+
+	dict := n.dictionary.GetAll()
+
+	for key, value := range req.Dict {
+		v, ok := dict[key]
+		if ok && v.version > req.Version[key] {
+			resDictValue[key] = v.value
+			resDictVersion[key] = v.version
+		}
+
+		if !ok || v.version <= req.Version[key] {
+			newDict[key] = Data{value: value, version: req.Version[key]}
+		}
+	}
+
+	return &pb.ResolveDataResponse{Dict: resDictValue, Version: resDictVersion}, nil
+}

@@ -172,12 +172,29 @@ func (n *Node) newPredecessorStorage() {
 
 	connection, err := NewGRPConnection(pred.address)
 	if err != nil {
+		println("aaa")
 		log.Println(err.Error())
 		return
 	}
 	defer connection.close()
 
-	connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict})
+	res, err := connection.client.ResolveData(connection.ctx, &pb.PartitionRequest{Dict: newDict})
+	if err != nil {
+		println("aaaaaaa")
+		log.Println(err.Error())
+		return
+	}
+
+	newResDict := make(map[string]Data)
+
+	for k, v := range res.Dict {
+		newResDict[k] = Data{value: v, version: res.Version[k]}
+	}
+
+	n.dictLock.Lock()
+	defer n.dictLock.Unlock()
+	n.dictionary.SetAll(newResDict)
+
 }
 
 func (n *Node) fixStorage() {
