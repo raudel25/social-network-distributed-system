@@ -99,6 +99,8 @@ func (*FollowServer) GetFollowing(ctx context.Context, request *socialnetwork_pb
 }
 
 func StartFollowService(network, address string) {
+	log.Println("Follow Service Started")
+
 	lis, err := net.Listen(network, address)
 
 	if err != nil {
