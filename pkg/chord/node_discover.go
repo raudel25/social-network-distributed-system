@@ -79,14 +79,6 @@ func (n *Node) discoverAndJoin(port string, broadListen string, broadRequest str
 	}
 
 	if n.hashID(leaderAddress).Cmp(n.id) > 0 {
-		n.sucLock.Lock()
-		n.successors.Clear()
-		n.sucLock.Unlock()
-
-		n.predLock.Lock()
-		n.predecessors.Clear()
-		n.predLock.Unlock()
-
 		err := n.Join(fmt.Sprintf("%s:%s", discover, port), leaderAddress)
 		if err != nil {
 			log.Error(err.Error())
