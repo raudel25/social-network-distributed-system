@@ -20,6 +20,9 @@ type Node struct {
 	address string
 	ip      net.IP
 
+	time     *NodeTime
+	timeLock sync.RWMutex
+
 	leader     *Node
 	leaderLock sync.RWMutex
 
@@ -62,6 +65,7 @@ func (n *Node) Start(port string, broadListen string, broadRequest string) {
 	n.address = fmt.Sprintf("%s:%s", n.ip.String(), port)
 
 	n.id = n.hashID(n.address)
+	n.time = NewNodeTime(n.id)
 
 	log.Printf("Starting chord server %s\n", n.address)
 
@@ -70,9 +74,10 @@ func (n *Node) Start(port string, broadListen string, broadRequest string) {
 
 	log.Printf("Chord server is running address:%s id:%s\n", n.address, n.id.String())
 
+	go n.threadListen(s)
+
 	n.createRingOrJoin(broadListen, broadRequest, port)
 
-	go n.threadListen(s)
 	go n.threadStabilize()
 	go n.threadCheckPredecessor()
 	go n.threadCheckSuccessor()
@@ -82,4 +87,6 @@ func (n *Node) Start(port string, broadListen string, broadRequest string) {
 	go n.threadDiscoverAndJoin(port, broadListen, broadRequest)
 	go n.threadCheckLeader()
 	go n.threadBroadListen(broadListen)
+	go n.threadRequestElections()
+	go n.threadUpdateTime()
 }

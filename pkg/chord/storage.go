@@ -7,27 +7,32 @@ import (
 	"os"
 )
 
+type Data struct {
+	Value   string `json:"value"`
+	Version int64  `json:"version"`
+}
+
 type Storage interface {
-	Get(key string) string
-	GetAll() map[string]string
-	Set(key string, value string)
-	SetAll(dict map[string]string)
+	Get(key string) Data
+	GetAll() map[string]Data
+	Set(key string, value Data)
+	SetAll(dict map[string]Data)
 	Remove(key string)
 }
 
 type RamStorage struct {
-	store map[string]string
+	store map[string]Data
 }
 
 func NewRamStorage() *RamStorage {
-	return &RamStorage{store: make(map[string]string)}
+	return &RamStorage{store: make(map[string]Data)}
 }
 
-func (s *RamStorage) Get(key string) string {
+func (s *RamStorage) Get(key string) Data {
 	return s.store[key]
 }
 
-func (s *RamStorage) Set(key string, value string) {
+func (s *RamStorage) Set(key string, value Data) {
 	s.store[key] = value
 }
 
@@ -35,36 +40,36 @@ func (s *RamStorage) Remove(key string) {
 	delete(s.store, key)
 }
 
-func (s *RamStorage) GetAll() map[string]string {
+func (s *RamStorage) GetAll() map[string]Data {
 	return s.store
 }
 
-func (s *RamStorage) SetAll(dict map[string]string) {
-	for _, key := range dict {
-		s.store[key] = dict[key]
+func (s *RamStorage) SetAll(dict map[string]Data) {
+	for key, value := range dict {
+		s.store[key] = value
 	}
 }
 
 // DictStorage struct
 type DictStorage struct {
-	store    map[string]string
+	store    map[string]Data
 	filename string
 }
 
 // NewDictStorage creates a new DictStorage
 func NewDictStorage(filename string) *DictStorage {
-	dict := &DictStorage{store: make(map[string]string), filename: filename}
+	dict := &DictStorage{store: make(map[string]Data), filename: filename}
 	dict.loadFromFile()
 	return dict
 }
 
 // Get retrieves a value by key
-func (ds *DictStorage) Get(key string) string {
+func (ds *DictStorage) Get(key string) Data {
 	return ds.store[key]
 }
 
 // Set sets a value by key
-func (ds *DictStorage) Set(key string, value string) {
+func (ds *DictStorage) Set(key string, value Data) {
 	ds.store[key] = value
 }
 
@@ -74,13 +79,13 @@ func (ds *DictStorage) Remove(key string) {
 	ds.saveToFile()
 }
 
-func (ds *DictStorage) GetAll() map[string]string {
+func (ds *DictStorage) GetAll() map[string]Data {
 	return ds.store
 }
 
-func (ds *DictStorage) SetAll(dict map[string]string) {
-	for _, key := range dict {
-		ds.store[key] = dict[key]
+func (ds *DictStorage) SetAll(dict map[string]Data) {
+	for key, value := range dict {
+		ds.store[key] = value
 	}
 }
 

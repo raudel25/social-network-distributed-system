@@ -23,8 +23,17 @@ func (n *Node) checkLeader() {
 	}
 	defer connection.close()
 
-	_, err = connection.client.Ping(connection.ctx, &pb.EmptyRequest{})
+	n.timeLock.RLock()
+	time := n.time.timeCounter
+	n.timeLock.RUnlock()
+
+	res, err := connection.client.PingLeader(connection.ctx, &pb.TimeRequest{Id: n.id.String(), Time: time})
 	if err == nil {
+		n.timeLock.Lock()
+		n.time.timeCounter = res.Time
+		n.time.nodeTimers[n.id.String()] = res.Time
+		n.timeLock.Unlock()
+
 		return
 	}
 
