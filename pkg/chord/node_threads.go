@@ -11,6 +11,7 @@ import (
 )
 
 const interval = 10
+const intervalS = 60
 
 func (n *Node) threadStabilize() {
 	log.Println("Stabilize thread started")
@@ -169,7 +170,6 @@ func (n *Node) threadBroadListen(port string) {
 		n.leaderLock.RUnlock()
 
 		if !equals(leaderId, n.id) {
-
 			continue
 		}
 
@@ -185,6 +185,27 @@ func (n *Node) threadBroadListen(port string) {
 			conn.WriteTo(response, clientAddr)
 		}
 
+	}
+}
+
+func (n *Node) threadRequestElections() {
+	log.Println("Election requested thread started")
+
+	ticker := time.NewTicker(intervalS * time.Second)
+	for {
+		select {
+		case <-n.shutdown:
+			ticker.Stop()
+			return
+		case <-ticker.C:
+			n.leaderLock.RLock()
+			leaderId := n.leader.id
+			n.leaderLock.RUnlock()
+
+			if equals(n.id, leaderId) {
+				n.electionRequested()
+			}
+		}
 	}
 
 }

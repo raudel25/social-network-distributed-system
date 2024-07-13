@@ -82,4 +82,5 @@ func (n *Node) Start(port string, broadListen string, broadRequest string) {
 	go n.threadDiscoverAndJoin(port, broadListen, broadRequest)
 	go n.threadCheckLeader()
 	go n.threadBroadListen(broadListen)
+	go n.threadRequestElections()
 }
