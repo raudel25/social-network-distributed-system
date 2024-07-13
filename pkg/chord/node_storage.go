@@ -7,7 +7,7 @@ import (
 	pb "github.com/raudel25/social-network-distributed-system/pkg/chord/grpc"
 )
 
-func (n *Node) setReplicate(key string, value string) {
+func (n *Node) setReplicate(key string, value Data) {
 	log.Printf("Set replicate key %s\n", key)
 
 	n.sucLock.RLock()
@@ -22,7 +22,7 @@ func (n *Node) setReplicate(key string, value string) {
 	}
 }
 
-func (n *Node) setReplicateNode(node *Node, key string, value string) error {
+func (n *Node) setReplicateNode(node *Node, key string, value Data) error {
 	log.Printf("Set replicate key %s in %s\n", key, node.address)
 
 	connection, err := NewGRPConnection(node.address)
@@ -31,7 +31,7 @@ func (n *Node) setReplicateNode(node *Node, key string, value string) error {
 	}
 	defer connection.close()
 
-	_, err = connection.client.Set(connection.ctx, &pb.KeyValueRequest{Key: key, Value: value, Rep: false})
+	_, err = connection.client.Set(connection.ctx, &pb.KeyValueRequest{Key: key, Value: value.value, Version: value.version, Rep: false})
 	if err != nil {
 		return err
 	}
@@ -74,21 +74,23 @@ func (n *Node) removeReplicateNode(node *Node, key string) error {
 func (n *Node) replicateAllData(node *Node) {
 	log.Printf("Replicate all data in %s\n", node.address)
 
-	n.dictLock.RLock()
+	n.dictLock.Lock()
 	dict := n.dictionary.GetAll()
-	n.dictLock.RUnlock()
+	defer n.dictLock.Unlock()
 
 	n.predLock.RLock()
 	pred := n.predecessors.GetIndex(0)
 	n.predLock.RUnlock()
 
 	newDict := make(map[string]string)
+	newVersion := make(map[string]int64)
 
 	for k, v := range dict {
 		keyId := n.hashID(k)
 
 		if between(keyId, pred.id, n.id) {
-			newDict[k] = v
+			newDict[k] = v.value
+			newVersion[k] = v.version
 		}
 	}
 
@@ -99,7 +101,7 @@ func (n *Node) replicateAllData(node *Node) {
 	}
 	defer connection.close()
 
-	connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict})
+	connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict, Version: newVersion})
 }
 
 func (n *Node) failPredecessorStorage(predId *big.Int) {
@@ -110,17 +112,20 @@ func (n *Node) failPredecessorStorage(predId *big.Int) {
 	n.dictLock.RUnlock()
 
 	newDict := make(map[string]string)
+	newVersion := make(map[string]int64)
 
 	n.dictLock.Lock()
+	defer n.dictLock.Unlock()
+
 	for key, value := range dict {
 		keyId := n.hashID(key)
 		if between(keyId, predId, n.id) {
 			continue
 		}
 
-		newDict[key] = value
+		newDict[key] = value.value
+		newVersion[key] = value.version
 	}
-	n.dictLock.Unlock()
 
 	n.sucLock.RLock()
 	defer n.sucLock.RUnlock()
@@ -153,6 +158,7 @@ func (n *Node) newPredecessorStorage() {
 	n.predLock.RUnlock()
 
 	newDict := make(map[string]string)
+	newVersion := make(map[string]int64)
 
 	for key, value := range dict {
 		keyId := n.hashID(key)
@@ -160,7 +166,8 @@ func (n *Node) newPredecessorStorage() {
 			continue
 		}
 
-		newDict[key] = value
+		newDict[key] = value.value
+		newVersion[key] = value.version
 	}
 
 	connection, err := NewGRPConnection(pred.address)

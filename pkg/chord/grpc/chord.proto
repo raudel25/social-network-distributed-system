@@ -67,11 +67,13 @@ message KeyRequest{
 message KeyValueRequest{
   string key = 1;
   string value = 2;
-  bool rep = 3;
+  int64 version = 3;
+  bool rep = 4;
 }
 
 message PartitionRequest{
   map<string, string> dict = 1;  
+  map<string, int64> version = 2;
 }
 
 message TimeRequest {
