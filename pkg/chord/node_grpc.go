@@ -94,6 +94,20 @@ func (n *Node) Ping(ctx context.Context, req *pb.EmptyRequest) (*pb.StatusRespon
 	return &pb.StatusResponse{Ok: true}, nil
 }
 
+func (n *Node) PingLeader(ctx context.Context, req *pb.TimeRequest) (*pb.TimeResponse, error) {
+	n.timeLock.Lock()
+	defer n.timeLock.Unlock()
+
+	id := req.Id
+	time := req.Time
+
+	n.time.nodeTimers[id] = time
+	n.time.timeCounter = n.time.BerkleyAlgorithm()
+	n.time.nodeTimers[n.id.String()] = n.time.timeCounter
+
+	return &pb.TimeResponse{Time: n.time.timeCounter}, nil
+}
+
 func (n *Node) Election(ctx context.Context, req *pb.ElectionRequest) (*pb.NodeResponse, error) {
 	selectedLeader := &Node{id: strToBig(req.SelectedLeaderId), address: req.SelectedLeaderAddress}
 	firstId := strToBig(req.FirstId)
