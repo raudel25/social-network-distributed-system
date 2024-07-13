@@ -209,3 +209,22 @@ func (n *Node) threadRequestElections() {
 	}
 
 }
+
+func (n *Node) threadUpdateTime() {
+	log.Println("Update time thread started")
+
+	ticker := time.NewTicker(time.Second)
+	for {
+		select {
+		case <-n.shutdown:
+			ticker.Stop()
+			return
+		case <-ticker.C:
+			n.timeLock.Lock()
+			n.time.timeCounter += 1
+			n.time.nodeTimers[n.id.String()] += 1
+			n.timeLock.Unlock()
+		}
+	}
+
+}
