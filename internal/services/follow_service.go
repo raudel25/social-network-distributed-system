@@ -135,9 +135,7 @@ func loadFollowingUsenamesList(username string) ([]string, error) {
 		return nil, err
 	}
 
-	for _, userId := range userFollows.FollowingUserIds {
-		users = append(users, userId)
-	}
+	users = append(users, userFollows.FollowingUserIds...)
 
 	return users, nil
 }

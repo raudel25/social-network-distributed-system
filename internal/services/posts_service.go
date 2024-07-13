@@ -21,7 +21,7 @@ type PostServer struct {
 func (*PostServer) GetPost(_ context.Context, request *socialnetwork_pb.GetPostRequest) (*socialnetwork_pb.GetPostResponse, error) {
 	postId := request.GetPostId()
 
-	post, err := loadPostDto(postId)
+	post, err := loadPost(postId)
 
 	if err != nil {
 		return nil, err
@@ -37,6 +37,10 @@ func (*PostServer) CreatePost(ctx context.Context, request *socialnetwork_pb.Cre
 
 	if len(request.GetContent()) > 140 {
 		return nil, status.Errorf(codes.InvalidArgument, "Post content is too long")
+	}
+
+	if len(request.GetContent()) == 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "Posts must have content")
 	}
 
 	postID := fmt.Sprintf("%d", time.Now().UnixNano())
@@ -56,7 +60,7 @@ func (*PostServer) CreatePost(ctx context.Context, request *socialnetwork_pb.Cre
 		return nil, err
 	}
 
-	return &socialnetwork_pb.CreatePostResponse{Post: postToPostDto(post, 0)}, nil
+	return &socialnetwork_pb.CreatePostResponse{Post: post}, nil
 }
 
 func (*PostServer) Repost(ctx context.Context, request *socialnetwork_pb.RepostRequest) (*socialnetwork_pb.RepostResponse, error) {
@@ -64,7 +68,7 @@ func (*PostServer) Repost(ctx context.Context, request *socialnetwork_pb.RepostR
 		return nil, err
 	}
 
-	_, err := loadPost(request.OriginalPostId)
+	originalPost, err := loadPost(request.OriginalPostId)
 
 	if err != nil {
 		return nil, err
@@ -75,7 +79,7 @@ func (*PostServer) Repost(ctx context.Context, request *socialnetwork_pb.RepostR
 	post := &socialnetwork_pb.Post{
 		PostId:         postID,
 		UserId:         request.GetUserId(),
-		Content:        request.GetContent(),
+		Content:        originalPost.Content,
 		Timestamp:      time.Now().Unix(),
 		OriginalPostId: request.GetOriginalPostId(),
 	}
@@ -88,13 +92,7 @@ func (*PostServer) Repost(ctx context.Context, request *socialnetwork_pb.RepostR
 		return nil, err
 	}
 
-	postResponse, err := loadPostDto(postID)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &socialnetwork_pb.RepostResponse{Post: postResponse}, nil
+	return &socialnetwork_pb.RepostResponse{Post: post}, nil
 }
 
 func (*PostServer) DeletePost(ctx context.Context, request *socialnetwork_pb.DeletePostRequest) (*socialnetwork_pb.DeletePostResponse, error) {
@@ -128,7 +126,7 @@ func (*PostServer) GetUserPosts(_ context.Context, request *socialnetwork_pb.Get
 		return nil, err
 	}
 
-	posts, err := loadPostDtosList(userId)
+	posts, err := loadPostList(userId)
 
 	if err != nil {
 		return nil, err
@@ -169,8 +167,8 @@ func StartPostsService(network string, address string) {
 
 // ==============================================================================================================================================
 
-func loadPostDtosList(username string) ([]*socialnetwork_pb.PostDto, error) {
-	posts := make([]*socialnetwork_pb.PostDto, 0)
+func loadPostList(username string) ([]*socialnetwork_pb.Post, error) {
+	posts := make([]*socialnetwork_pb.Post, 0)
 
 	userPosts, err := loadPostsList(username)
 
@@ -179,66 +177,11 @@ func loadPostDtosList(username string) ([]*socialnetwork_pb.PostDto, error) {
 	}
 
 	for _, postId := range userPosts.PostsIds {
-		post, err := loadPostDto(postId)
+		post, err := loadPost(postId)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "Failed to load post %s in user posts: %v", postId, err)
 		}
 		posts = append(posts, post)
 	}
 	return posts, nil
-}
-
-func loadPostDto(postId string) (*socialnetwork_pb.PostDto, error) {
-	post, err := loadPost(postId)
-
-	if err != nil {
-		return nil, err
-	}
-
-	postResponse := postToPostDto(post, socialnetwork_pb.PostType_ORIGINAL)
-
-	if post.OriginalPostId != "" {
-		postResponseOriginal, postType, err := loadOriginalPost(postId, 0)
-
-		// asumimos que un not found es que borraron algun post en el camino
-		if err != nil && !checkNotFound(err) {
-			return nil, err
-		}
-
-		postResponse.PostType = postType
-		postResponse.OriginalPost = postResponseOriginal
-	}
-
-	return postResponse, nil
-}
-
-func loadOriginalPost(postId string, times int) (*socialnetwork_pb.PostDto, socialnetwork_pb.PostType, error) {
-	originalPost, err := loadPost(postId)
-
-	postType := socialnetwork_pb.PostType_REPOST
-
-	if times > 1 {
-		postType = socialnetwork_pb.PostType_REPOST_OF_REPOST
-	}
-
-	if err != nil {
-		return nil, postType, err
-	}
-
-	if originalPost.OriginalPostId == "" {
-		responsePost := postToPostDto(originalPost, socialnetwork_pb.PostType_ORIGINAL)
-		return responsePost, postType, nil
-	}
-
-	return loadOriginalPost(originalPost.OriginalPostId, times+1)
-}
-
-func postToPostDto(post *socialnetwork_pb.Post, postType socialnetwork_pb.PostType) *socialnetwork_pb.PostDto {
-	return &socialnetwork_pb.PostDto{
-		PostId:    post.PostId,
-		UserId:    post.UserId,
-		Content:   post.Content,
-		Timestamp: post.Timestamp,
-		PostType:  postType,
-	}
 }
