@@ -3,8 +3,6 @@ syntax = "proto3";
 package socialnetwork;
 option go_package = "internal/services/grpc;socialnetwork_pb";
 
-import "internal/services/proto/db_models.proto";
-
 service FollowService {
   // Follow a user
   rpc FollowUser (FollowUserRequest) returns (FollowUserResponse);
@@ -37,5 +35,5 @@ message GetFollowingRequest {
 }
   
 message GetFollowingResponse {
-    repeated User following = 1;
+    repeated string following_usernames = 1;
 }
