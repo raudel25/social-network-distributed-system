@@ -12,6 +12,7 @@ BR := $(shell echo $$((12000 + $(ID))))
 
 # -------------------------------------------- Local commands -------------------------------------------------------------------
 
+# Install dependencies
 .PHONY: deps
 deps:
 	$(GOGET) -v -t -d ./...
@@ -32,8 +33,15 @@ proto-chord:
 proto-services:
 	protoc --go_out=. --go-grpc_out=. internal/services/proto/*.proto
 
+# Generate all protocol buffer code
+.PHONY: proto
+proto:
+	make proto-chord
+	make proto-services
+
 # -------------------------------------------- Docker commands -----------------------------------------------------------------------
 
+# Build Docker image
 .PHONY: docker-build
 docker-build:
 	docker build -t socialnetwork .
