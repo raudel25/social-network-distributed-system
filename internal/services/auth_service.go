@@ -32,7 +32,11 @@ func (server *AuthServer) Login(ctx context.Context, request *socialnetwork_pb.L
 	user, err := loadUser(username)
 
 	if err != nil {
-		return nil, err
+		if status.Code(err) == codes.NotFound {
+			return nil, status.Errorf(codes.PermissionDenied, "Wrong username or password")
+		} else {
+			return nil, err
+		}
 	}
 
 	if err := verifyPassword(user.PasswordHash, request.Password); err != nil {
@@ -137,15 +141,6 @@ func (server *AuthServer) generateToken(user *socialnetwork_pb.User) (string, er
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	return token.SignedString(server.jwtPrivateKey)
 }
-
-// func validateToken(token string, publicKey *rsa.PublicKey) (*jwt.Token, error) {
-// 	return jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
-// 		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
-// 			return nil, errors.New("invalid token")
-// 		}
-// 		return publicKey, nil
-// 	})
-// }
 
 func validateToken(token string, publicKey *rsa.PublicKey) (*jwt.Token, error) {
 	parsedToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {

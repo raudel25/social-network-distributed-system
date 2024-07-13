@@ -2,11 +2,15 @@ GOCMD=go
 GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
 
-PORT ?= 10000  # Port where the node will run
-BL ?= 11000    # Port where the node will listen for broadcasts
-BR ?= 12000    # Port where the node will make requests
+# Default ID (can be overridden from command line)
+ID ?= 0
 
-# -------------------------------------------- Local commands -----------------------------------------------------------------------
+# Calculate ports based on ID
+PORT := $(shell echo $$((10000 + $(ID))))
+BL := $(shell echo $$((11000 + $(ID))))
+BR := $(shell echo $$((12000 + $(ID))))
+
+# -------------------------------------------- Local commands -------------------------------------------------------------------
 
 # Install dependencies
 .PHONY: deps

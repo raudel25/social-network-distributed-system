@@ -89,13 +89,13 @@ func (*FollowServer) GetFollowing(ctx context.Context, request *socialnetwork_pb
 		return nil, err
 	}
 
-	following, err := loadFollowingListDtos(username)
+	following, err := loadFollowingUsenamesList(username)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &socialnetwork_pb.GetFollowingResponse{Following: following}, nil
+	return &socialnetwork_pb.GetFollowingResponse{FollowingUsernames: following}, nil
 }
 
 func StartFollowService(network, address string) {
@@ -126,8 +126,10 @@ func StartFollowService(network, address string) {
 	}
 }
 
-func loadFollowingListDtos(username string) ([]*socialnetwork_pb.User, error) {
-	users := make([]*socialnetwork_pb.User, 0)
+// ==============================================================================================================================================
+
+func loadFollowingUsenamesList(username string) ([]string, error) {
+	users := make([]string, 0)
 
 	userFollows, err := loadFollowingList(username)
 
@@ -135,14 +137,7 @@ func loadFollowingListDtos(username string) ([]*socialnetwork_pb.User, error) {
 		return nil, err
 	}
 
-	for _, userId := range userFollows.FollowingUserIds {
-		user, err := loadUser(userId)
-		if err != nil {
-			return nil, err
-		}
-		user.PasswordHash = ""
-		users = append(users, user)
-	}
+	users = append(users, userFollows.FollowingUserIds...)
 
 	return users, nil
 }
