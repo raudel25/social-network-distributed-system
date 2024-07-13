@@ -88,17 +88,18 @@ func (n *Node) checkSuccessor() {
 
 	log.Printf("Successor %s has failed\n", successor.address)
 
-	n.sucLock.Lock()
-	n.successors.RemoveIndex(0)
-	n.sucLock.Unlock()
-
 	n.sucLock.RLock()
 	len := n.successors.Len()
 	n.sucLock.RUnlock()
 
-	if len == 0 {
+	if len == 1 {
 		n.sucLock.Lock()
+		n.successors.RemoveIndex(0)
 		n.successors.SetIndex(0, n)
+		n.sucLock.Unlock()
+	} else {
+		n.sucLock.Lock()
+		n.successors.RemoveIndex(0)
 		n.sucLock.Unlock()
 	}
 }
@@ -128,17 +129,18 @@ func (n *Node) checkPredecessor() {
 
 	log.Printf("Predecessor %s has failed\n", predecessor.address)
 
-	n.predLock.Lock()
-	n.predecessors.RemoveIndex(0)
-	n.predLock.Unlock()
-
 	n.predLock.RLock()
 	len := n.predecessors.Len()
 	n.predLock.RUnlock()
 
-	if len == 0 {
+	if len == 1 {
 		n.predLock.Lock()
+		n.predecessors.RemoveIndex(0)
 		n.predecessors.SetIndex(0, n)
+		n.predLock.Unlock()
+	} else {
+		n.predLock.Lock()
+		n.predecessors.RemoveIndex(0)
 		n.predLock.Unlock()
 	}
 

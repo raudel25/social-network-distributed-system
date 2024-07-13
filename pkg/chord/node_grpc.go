@@ -156,11 +156,12 @@ func (n *Node) Join(address string, leaderAddress string) error {
 	}
 
 	n.sucLock.Lock()
+	n.successors.Clear()
 	n.successors.SetIndex(0, newNode)
 	n.sucLock.Unlock()
-	n.notify(address)
 
 	n.predLock.Lock()
+	n.predecessors.Clear()
 	n.predecessors.SetIndex(0, n)
 	n.predLock.Unlock()
 
@@ -171,6 +172,8 @@ func (n *Node) Join(address string, leaderAddress string) error {
 	n.leaderLock.Lock()
 	n.leader = &Node{id: n.hashID(leaderAddress), address: leaderAddress}
 	n.leaderLock.Unlock()
+
+	n.notify(address)
 
 	return nil
 }

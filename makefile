@@ -1,4 +1,3 @@
-# Go parameters
 GOCMD=go
 GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
@@ -18,29 +17,38 @@ deps:
 	$(GOGET) -v -t -d ./...
 	$(GOMOD) tidy
 
+# Run the application in development mode
 .PHONY: dev
 dev:
 	$(GOCMD) run cmd/main.go -p $(PORT) -bl $(BL) -br $(BR)
 
-.PHONY: proto
-proto:
+# Generate chord protocol buffer code
+.PHONY: proto-chord
+proto-chord:
 	protoc --go_out=. --go-grpc_out=. pkg/chord/grpc/chord.proto
+
+# Generate services protocol buffer code
+.PHONY: proto-services
+proto-services:
 	protoc --go_out=. --go-grpc_out=. internal/services/proto/*.proto
 
-# -------------------------------------------- Docker commands -------------------------------------------------------------------
+# -------------------------------------------- Docker commands -----------------------------------------------------------------------
 
 .PHONY: docker-build
 docker-build:
 	docker build -t socialnetwork .
 
+# Run Docker container
 .PHONY: docker-run
 docker-run:
 	docker run -it --rm -p $(PORT):10000 -p $(BL):11000 -p $(BR):12000 -v $(PWD):/app socialnetwork
 
+# Run development environment in Docker
 .PHONY: docker-dev
 docker-dev:
 	docker run -it --rm -p $(PORT):10000 -p $(BL):11000 -p $(BR):12000 -v $(PWD):/app socialnetwork make dev
 
+# Generate protocol buffer code in Docker
 .PHONY: docker-proto
 docker-proto:
 	docker run -it --rm -p $(PORT):10000 -p $(BL):11000 -p $(BR):12000 -v $(PWD):/app socialnetwork make proto
