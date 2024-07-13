@@ -31,7 +31,7 @@ func (n *Node) setReplicateNode(node *Node, key string, value Data) error {
 	}
 	defer connection.close()
 
-	_, err = connection.client.Set(connection.ctx, &pb.KeyValueRequest{Key: key, Value: value.value, Version: value.version, Rep: false})
+	_, err = connection.client.Set(connection.ctx, &pb.KeyValueRequest{Key: key, Value: value.Value, Version: value.Version, Rep: false})
 	if err != nil {
 		return err
 	}
@@ -89,8 +89,8 @@ func (n *Node) replicateAllData(node *Node) {
 		keyId := n.hashID(k)
 
 		if between(keyId, pred.id, n.id) {
-			newDict[k] = v.value
-			newVersion[k] = v.version
+			newDict[k] = v.Value
+			newVersion[k] = v.Version
 		}
 	}
 
@@ -123,8 +123,8 @@ func (n *Node) failPredecessorStorage(predId *big.Int) {
 			continue
 		}
 
-		newDict[key] = value.value
-		newVersion[key] = value.version
+		newDict[key] = value.Value
+		newVersion[key] = value.Version
 	}
 
 	n.sucLock.RLock()
@@ -166,8 +166,8 @@ func (n *Node) newPredecessorStorage() {
 			continue
 		}
 
-		newDict[key] = value.value
-		newVersion[key] = value.version
+		newDict[key] = value.Value
+		newVersion[key] = value.Version
 	}
 
 	connection, err := NewGRPConnection(pred.address)
@@ -188,7 +188,7 @@ func (n *Node) newPredecessorStorage() {
 	newResDict := make(map[string]Data)
 
 	for k, v := range res.Dict {
-		newResDict[k] = Data{value: v, version: res.Version[k]}
+		newResDict[k] = Data{Value: v, Version: res.Version[k]}
 	}
 
 	n.dictLock.Lock()

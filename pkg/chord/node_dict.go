@@ -13,7 +13,7 @@ func (n *Node) Get(ctx context.Context, req *pb.KeyRequest) (*pb.StatusValueResp
 	value := n.dictionary.Get(req.Key)
 	n.dictLock.RUnlock()
 
-	return &pb.StatusValueResponse{Ok: len(value.value) != 0, Value: value.value}, nil
+	return &pb.StatusValueResponse{Ok: len(value.Value) != 0, Value: value.Value}, nil
 }
 
 func (n *Node) GetKey(key string) (*string, error) {
@@ -44,7 +44,7 @@ func (n *Node) GetKey(key string) (*string, error) {
 
 func (n *Node) Set(ctx context.Context, req *pb.KeyValueRequest) (*pb.StatusResponse, error) {
 	n.dictLock.Lock()
-	n.dictionary.Set(req.Key, Data{value: req.Value, version: req.Version})
+	n.dictionary.Set(req.Key, Data{Value: req.Value, Version: req.Version})
 	defer n.dictLock.Unlock()
 
 	n.sucLock.RLock()
@@ -52,7 +52,7 @@ func (n *Node) Set(ctx context.Context, req *pb.KeyValueRequest) (*pb.StatusResp
 	n.sucLock.RUnlock()
 
 	if req.Rep && !equals(suc.id, n.id) {
-		n.setReplicate(req.Key, Data{value: req.Value, version: req.Version})
+		n.setReplicate(req.Key, Data{Value: req.Value, Version: req.Version})
 	}
 
 	return &pb.StatusResponse{Ok: true}, nil
@@ -126,7 +126,7 @@ func (n *Node) SetPartition(ctx context.Context, req *pb.PartitionRequest) (*pb.
 	newDict := make(map[string]Data)
 
 	for key, value := range req.Dict {
-		newDict[key] = Data{value: value, version: req.Version[key]}
+		newDict[key] = Data{Value: value, Version: req.Version[key]}
 	}
 
 	n.dictLock.Lock()
@@ -149,13 +149,13 @@ func (n *Node) ResolveData(ctx context.Context, req *pb.PartitionRequest) (*pb.R
 
 	for key, value := range req.Dict {
 		v, ok := dict[key]
-		if ok && v.version > req.Version[key] {
-			resDictValue[key] = v.value
-			resDictVersion[key] = v.version
+		if ok && v.Version > req.Version[key] {
+			resDictValue[key] = v.Value
+			resDictVersion[key] = v.Version
 		}
 
-		if !ok || v.version <= req.Version[key] {
-			newDict[key] = Data{value: value, version: req.Version[key]}
+		if !ok || v.Version <= req.Version[key] {
+			newDict[key] = Data{Value: value, Version: req.Version[key]}
 		}
 	}
 
