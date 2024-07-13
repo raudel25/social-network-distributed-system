@@ -138,15 +138,6 @@ func (server *AuthServer) generateToken(user *socialnetwork_pb.User) (string, er
 	return token.SignedString(server.jwtPrivateKey)
 }
 
-// func validateToken(token string, publicKey *rsa.PublicKey) (*jwt.Token, error) {
-// 	return jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
-// 		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
-// 			return nil, errors.New("invalid token")
-// 		}
-// 		return publicKey, nil
-// 	})
-// }
-
 func validateToken(token string, publicKey *rsa.PublicKey) (*jwt.Token, error) {
 	parsedToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {

@@ -3,9 +3,15 @@ GOCMD=go
 GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
 
-CONTAINER_PORT ?= 10000
-CONTAINER_BL ?= 11000
-CONTAINER_BR ?= 12000
+# Default ID (can be overridden from command line)
+ID ?= 0
+
+# Calculate ports based on ID
+PORT := $(shell echo $$((10000 + $(ID))))
+BL := $(shell echo $$((11000 + $(ID))))
+BR := $(shell echo $$((12000 + $(ID))))
+
+# -------------------------------------------- Local commands -------------------------------------------------------------------
 
 .PHONY: deps
 deps:
@@ -14,18 +20,14 @@ deps:
 
 .PHONY: dev
 dev:
-	$(GOCMD) run cmd/main.go -p $(CONTAINER_PORT) -bl $(CONTAINER_BL) -br $(CONTAINER_BR)
+	$(GOCMD) run cmd/main.go -p $(PORT) -bl $(BL) -br $(BR)
 
 .PHONY: proto
 proto:
 	protoc --go_out=. --go-grpc_out=. pkg/chord/grpc/chord.proto
 	protoc --go_out=. --go-grpc_out=. internal/services/proto/*.proto
 
-# -------------------------------------------- Docker commands -----------------------------------------------------------------------
-
-PORT ?= 10000
-BL ?= 11000
-BR ?= 12000
+# -------------------------------------------- Docker commands -------------------------------------------------------------------
 
 .PHONY: docker-build
 docker-build:
