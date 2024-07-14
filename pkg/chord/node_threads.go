@@ -3,6 +3,7 @@ package chord
 import (
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -173,10 +174,19 @@ func (n *Node) threadBroadListen(port string) {
 			continue
 		}
 
-		message := string(buffer[:nn])
-		log.Infof("Message receive from %s: %s", clientAddr, message)
+		res := strings.Split(string(buffer[:nn]), ";")
 
-		if message == "Are you a chord?" {
+		if len(res) != 2 {
+			continue
+		}
+
+		if res[1] == n.id.String() {
+			continue
+		}
+
+		log.Infof("Message receive from %s: %s", clientAddr, res[0])
+
+		if res[0] == "Are you a chord?" {
 			n.leaderLock.RLock()
 			leader := n.leader
 			n.leaderLock.RUnlock()

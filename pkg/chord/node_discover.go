@@ -26,7 +26,7 @@ func (n *Node) netDiscover(broadListen string, broadRequest string) (string, str
 	}
 	defer conn.Close()
 
-	message := []byte("Are you a chord?")
+	message := []byte("Are you a chord?;" + n.id.String())
 	conn.WriteTo(message, &broadcastAddr)
 
 	buffer := make([]byte, 1024)
