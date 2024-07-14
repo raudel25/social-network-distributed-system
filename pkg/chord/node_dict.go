@@ -159,5 +159,7 @@ func (n *Node) ResolveData(ctx context.Context, req *pb.PartitionRequest) (*pb.R
 		}
 	}
 
+	n.dictionary.SetAll(newDict)
+
 	return &pb.ResolveDataResponse{Dict: resDictValue, Version: resDictVersion}, nil
 }
