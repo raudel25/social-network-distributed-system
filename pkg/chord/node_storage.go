@@ -172,7 +172,6 @@ func (n *Node) newPredecessorStorage() {
 
 	connection, err := NewGRPConnection(pred.address)
 	if err != nil {
-		println("aaa")
 		log.Println(err.Error())
 		return
 	}
@@ -180,7 +179,6 @@ func (n *Node) newPredecessorStorage() {
 
 	res, err := connection.client.ResolveData(connection.ctx, &pb.PartitionRequest{Dict: newDict})
 	if err != nil {
-		println("aaaaaaa")
 		log.Println(err.Error())
 		return
 	}
