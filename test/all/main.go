@@ -69,12 +69,12 @@ func main() {
 
 		tests.TestFollow(follow_client, user1.Username, user2.Username, token) // ok
 
-		time.Sleep(10 * time.Second) // tumbar el nodo de los datos
+		time.Sleep(60 * time.Second) // tumbar el nodo de los datos
 
 		tests.TestGetFollowingUsers(follow_client, user1.Username, token)        // [user2]
 		tests.TestUnfollow(follow_client, user1.Username, user2.Username, token) // ok
 
-		time.Sleep(10 * time.Second) // tumbar el nodo de los datos
+		time.Sleep(60 * time.Second) // tumbar el nodo de los datos
 
 		tests.TestGetFollowingUsers(follow_client, user1.Username, token)        // []
 		tests.TestUnfollow(follow_client, user1.Username, user2.Username, token) // not following

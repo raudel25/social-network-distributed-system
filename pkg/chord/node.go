@@ -55,8 +55,11 @@ func NewNode(config *Configuration, storage Storage) *Node {
 
 // DefaultNode creates and returns a new Node with default configurations.
 func DefaultNode() (*Node, error) {
-	conf := DefaultConfig()       // Creates a default configuration.
-	dictionary := NewRamStorage() // Creates a default dictionary.
+	conf := DefaultConfig()                                 // Creates a default configuration.
+	dictionary, err := NewDiskStorage("/tmp/socialnetwork-data") // Creates a default dictionary.
+	if err != nil {
+		return nil, err
+	}
 	return NewNode(conf, dictionary), nil
 }
 

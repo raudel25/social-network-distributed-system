@@ -233,6 +233,6 @@ func TestGetFollowingUsers(client socialnetwork_pb.FollowServiceClient, username
 	if err != nil {
 		log.Printf("Error getting following users: %v", err)
 	} else {
-		log.Printf("Following users: %v", response.GetFollowing())
+		log.Printf("Following users: %v", response.GetFollowingUsernames())
 	}
 }
