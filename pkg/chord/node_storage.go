@@ -75,7 +75,7 @@ func (n *Node) replicateAllData(node *Node) {
 	log.Printf("Replicate all data in %s\n", node.address)
 
 	n.dictLock.Lock()
-	dict := n.dictionary.GetAll()
+	dict, _ := n.dictionary.GetAll()
 	defer n.dictLock.Unlock()
 
 	n.predLock.RLock()
@@ -108,7 +108,7 @@ func (n *Node) failPredecessorStorage(predId *big.Int) {
 	log.Println("Absorbe all predecessor data")
 
 	n.dictLock.RLock()
-	dict := n.dictionary.GetAll()
+	dict, _ := n.dictionary.GetAll()
 	n.dictLock.RUnlock()
 
 	newDict := make(map[string]string)
@@ -144,7 +144,7 @@ func (n *Node) newPredecessorStorage() {
 	log.Println("Delegate predecessor data")
 
 	n.dictLock.RLock()
-	dict := n.dictionary.GetAll()
+	dict, _ := n.dictionary.GetAll()
 	n.dictLock.RUnlock()
 
 	n.predLock.RLock()
@@ -240,7 +240,7 @@ func (n *Node) fixStorage() {
 	}
 
 	n.dictLock.Lock()
-	dict := n.dictionary.GetAll()
+	dict, _ := n.dictionary.GetAll()
 	defer n.dictLock.Unlock()
 
 	for k := range dict {

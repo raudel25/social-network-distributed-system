@@ -10,8 +10,12 @@ import (
 
 func (n *Node) Get(ctx context.Context, req *pb.KeyRequest) (*pb.StatusValueResponse, error) {
 	n.dictLock.RLock()
-	value := n.dictionary.Get(req.Key)
-	n.dictLock.RUnlock()
+	defer n.dictLock.RUnlock()
+	
+	value, err := n.dictionary.Get(req.Key)
+	if err != nil {
+		return nil, err
+	}
 
 	return &pb.StatusValueResponse{Ok: len(value.Value) != 0, Value: value.Value}, nil
 }
@@ -145,7 +149,10 @@ func (n *Node) ResolveData(ctx context.Context, req *pb.PartitionRequest) (*pb.R
 	n.dictLock.Lock()
 	defer n.dictLock.Unlock()
 
-	dict := n.dictionary.GetAll()
+	dict, err := n.dictionary.GetAll()
+	if err != nil {
+		return nil, err
+	}
 
 	for key, value := range req.Dict {
 		v, ok := dict[key]

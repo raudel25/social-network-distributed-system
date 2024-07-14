@@ -21,7 +21,7 @@ func Start(rsaPrivateKeyPath string, rsaPublicteKeyPath string, network string) 
 	node, err = chord.DefaultNode()
 
 	if err != nil {
-		log.Fatalf("Can't start chord node")
+		log.Errorln("Can't start chord node: %w", err)
 	}
 
 	port := "10000"
