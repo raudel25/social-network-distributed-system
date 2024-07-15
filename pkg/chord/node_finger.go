@@ -49,8 +49,8 @@ func (n *Node) findSuccessor(id *big.Int) (*Node, error) {
 func (n *Node) fixFingers(index int) int {
 	log.Println("Fixing finger entry")
 
-	m := n.config.HashSize
-	n.fingerLock.RLock()                         // Obtain the finger table size.
+	m := n.config.HashSize // Obtain the finger table size.
+	n.fingerLock.RLock()
 	id := n.fingerTable.FingerId(n.id, index, m) // Obtain node.ID + 2^(next) mod(2^m).
 	n.fingerLock.RUnlock()
 	suc, err := n.findSuccessor(id) // Obtain the node that succeeds ID = node.ID + 2^(next) mod(2^m).

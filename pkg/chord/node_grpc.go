@@ -175,8 +175,9 @@ func (n *Node) Join(address string, leaderAddress string) error {
 	n.sucLock.Unlock()
 
 	n.predLock.Lock()
-	n.predecessors.Clear()
-	n.predecessors.SetIndex(0, n)
+	if n.predecessors.Len() == 0 {
+		n.predecessors.SetIndex(0, n)
+	}
 	n.predLock.Unlock()
 
 	n.fingerLock.Lock()

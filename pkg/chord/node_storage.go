@@ -130,14 +130,17 @@ func (n *Node) failPredecessorStorage(predId *big.Int) {
 	n.sucLock.RLock()
 	defer n.sucLock.RUnlock()
 
-	connection, err := NewGRPConnection(n.successors.GetIndex(n.successors.Len() - 1).address)
-	if err != nil {
-		log.Println(err.Error())
-		return
-	}
-	defer connection.close()
+	for i := 0; i < n.successors.Len(); i++ {
 
-	connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict})
+		connection, err := NewGRPConnection(n.successors.GetIndex(i).address)
+		if err != nil {
+			log.Println(err.Error())
+			continue
+		}
+		defer connection.close()
+
+		connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict})
+	}
 }
 
 func (n *Node) newPredecessorStorage() {

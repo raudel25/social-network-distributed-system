@@ -43,6 +43,7 @@ func (n *Node) createRingOrJoin(broadListen string, broadRequest string, port st
 		err := n.Join(fmt.Sprintf("%s:%s", discover, port), leaderAddress)
 		if err != nil {
 			log.Error(err.Error())
+			n.createRing()
 		}
 		return
 	}
