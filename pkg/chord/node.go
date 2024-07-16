@@ -55,15 +55,14 @@ func NewNode(config *Configuration, storage Storage) *Node {
 
 // DefaultNode creates and returns a new Node with default configurations.
 func DefaultNode() (*Node, error) {
-	conf := DefaultConfig()                                 // Creates a default configuration.
-	dictionary, err := NewDiskStorage("/tmp/socialnetwork-data") // Creates a default dictionary.
-	if err != nil {
-		return nil, err
-	}
+	conf := DefaultConfig()                                      // Creates a default configuration.
+	dictionary := NewDictStorage("/tmp/socialnetwork-data.json") // Creates a default dictionary.
 	return NewNode(conf, dictionary), nil
 }
 
 func (n *Node) Start(port string, broadListen string, broadRequest string) {
+	log.Println("aaaaaaaaaaaaaaaaaaaaaaa")
+
 	n.ip = getOutboundIP()
 	n.address = fmt.Sprintf("%s:%s", n.ip.String(), port)
 
