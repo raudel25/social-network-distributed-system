@@ -177,7 +177,7 @@ func (ds *DictStorage) Get(key string) (Data, error) {
 // Set sets a value by key
 func (ds *DictStorage) Set(key string, value Data) error {
 	ds.store[key] = value
-	return nil
+	return ds.saveToFile()
 }
 
 // Remove deletes a value by key
@@ -194,15 +194,21 @@ func (ds *DictStorage) SetAll(dict map[string]Data) error {
 	for key, value := range dict {
 		ds.store[key] = value
 	}
-	return nil
+	return ds.saveToFile()
 }
 
-// SaveToFile saves the storage to a JSON file
 func (ds *DictStorage) saveToFile() error {
 	data, err := json.Marshal(ds.store)
 	if err != nil {
 		return err
 	}
+
+	file, err := os.OpenFile(ds.filename, os.O_WRONLY|os.O_CREATE, fs.FileMode(0644))
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
 	return os.WriteFile(ds.filename, data, fs.FileMode(0644))
 }
 

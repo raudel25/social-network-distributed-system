@@ -139,7 +139,7 @@ func (n *Node) failPredecessorStorage(predId *big.Int) {
 		}
 		defer connection.close()
 
-		connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict})
+		connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict, Version: newVersion})
 	}
 }
 
@@ -180,7 +180,7 @@ func (n *Node) newPredecessorStorage() {
 	}
 	defer connection.close()
 
-	res, err := connection.client.ResolveData(connection.ctx, &pb.PartitionRequest{Dict: newDict})
+	res, err := connection.client.ResolveData(connection.ctx, &pb.PartitionRequest{Dict: newDict, Version: newVersion})
 	if err != nil {
 		log.Println(err.Error())
 		return
@@ -201,12 +201,17 @@ func (n *Node) newPredecessorStorage() {
 func (n *Node) fixStorage() {
 	log.Println("Fixing storage")
 
+	n.dictLock.RLock()
+	aux, _ := n.dictionary.GetAll()
+	n.dictLock.RUnlock()
+	log.Printf("Data storage len: %d\n", len(aux))
+
 	n.sucLock.RLock()
-	len := n.successors.Len()
+	lenS := n.successors.Len()
 	n.sucLock.RUnlock()
 
 	n.predLock.Lock()
-	for n.predecessors.Len() > len {
+	for n.predecessors.Len() > lenS {
 		n.predecessors.RemoveIndex(n.predecessors.Len() - 1)
 		if n.predecessors.Len() == 0 {
 			n.predecessors.SetIndex(0, n)
@@ -236,9 +241,9 @@ func (n *Node) fixStorage() {
 		return
 	}
 
-	pred = &Node{id: strToBig(res.Id)}
+	predPred := &Node{id: strToBig(res.Id)}
 
-	if equals(pred.id, n.id) {
+	if equals(predPred.id, n.id) || equals(predPred.id, pred.id) {
 		return
 	}
 
@@ -248,7 +253,7 @@ func (n *Node) fixStorage() {
 
 	for k := range dict {
 		keyId := n.hashID(k)
-		if between(keyId, pred.id, n.id) {
+		if between(keyId, predPred.id, n.id) {
 			continue
 		}
 

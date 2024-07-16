@@ -11,7 +11,7 @@ import (
 func (n *Node) Get(ctx context.Context, req *pb.KeyRequest) (*pb.StatusValueResponse, error) {
 	n.dictLock.RLock()
 	defer n.dictLock.RUnlock()
-	
+
 	value, err := n.dictionary.Get(req.Key)
 	if err != nil {
 		return nil, err
@@ -156,6 +156,7 @@ func (n *Node) ResolveData(ctx context.Context, req *pb.PartitionRequest) (*pb.R
 
 	for key, value := range req.Dict {
 		v, ok := dict[key]
+
 		if ok && v.Version > req.Version[key] {
 			resDictValue[key] = v.Value
 			resDictVersion[key] = v.Version
