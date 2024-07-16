@@ -128,13 +128,19 @@ func (n *Node) RemoveKey(key string) error {
 
 func (n *Node) SetPartition(ctx context.Context, req *pb.PartitionRequest) (*pb.StatusResponse, error) {
 	newDict := make(map[string]Data)
+	removeKeys := make([]string, 0)
 
 	for key, value := range req.Dict {
 		newDict[key] = Data{Value: value, Version: req.Version[key]}
 	}
 
+	for key := range req.Remove {
+		removeKeys = append(removeKeys, key)
+	}
+
 	n.dictLock.Lock()
 	n.dictionary.SetAll(newDict)
+	n.dictionary.RemoveAll(removeKeys)
 	n.dictLock.Unlock()
 
 	return &pb.StatusResponse{Ok: true}, nil
@@ -145,6 +151,7 @@ func (n *Node) ResolveData(ctx context.Context, req *pb.PartitionRequest) (*pb.R
 	newDict := make(map[string]Data)
 	resDictValue := make(map[string]string)
 	resDictVersion := make(map[string]int64)
+	resRemove := make(map[string]int64)
 
 	n.dictLock.Lock()
 	defer n.dictLock.Unlock()
@@ -167,7 +174,31 @@ func (n *Node) ResolveData(ctx context.Context, req *pb.PartitionRequest) (*pb.R
 		}
 	}
 
+	for key, time := range req.Remove {
+		v, ok := dict[key]
+
+		if ok && v.Version > time {
+			resDictValue[key] = v.Value
+			resDictVersion[key] = v.Version
+		}
+
+		if ok && v.Version <= time {
+			n.dictionary.Remove(key)
+		}
+	}
+
+	remove, _ := n.dictionary.GetRemoveAll()
+
+	for key, value := range remove {
+		t, ok := req.Version[key]
+
+		if ok && value.Version > t {
+			resRemove[key] = value.Version
+		}
+
+	}
+
 	n.dictionary.SetAll(newDict)
 
-	return &pb.ResolveDataResponse{Dict: resDictValue, Version: resDictVersion}, nil
+	return &pb.ResolveDataResponse{Dict: resDictValue, Version: resDictVersion, Remove: resRemove}, nil
 }
