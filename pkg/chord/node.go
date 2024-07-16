@@ -61,8 +61,6 @@ func DefaultNode() (*Node, error) {
 }
 
 func (n *Node) Start(port string, broadListen string, broadRequest string) {
-	log.Println("aaaaaaaaaaaaaaaaaaaaaaa")
-
 	n.ip = getOutboundIP()
 	n.address = fmt.Sprintf("%s:%s", n.ip.String(), port)
 

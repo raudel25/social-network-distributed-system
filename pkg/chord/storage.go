@@ -197,7 +197,6 @@ func (ds *DictStorage) SetAll(dict map[string]Data) error {
 	return ds.saveToFile()
 }
 
-// SaveToFile saves the storage to a JSON file
 func (ds *DictStorage) saveToFile() error {
 	data, err := json.Marshal(ds.store)
 	if err != nil {
@@ -205,15 +204,12 @@ func (ds *DictStorage) saveToFile() error {
 	}
 
 	file, err := os.OpenFile(ds.filename, os.O_WRONLY|os.O_CREATE, fs.FileMode(0644))
-	println(err != nil)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	_, err = file.Write(data)
-
-	return err
+	return os.WriteFile(ds.filename, data, fs.FileMode(0644))
 }
 
 // LoadFromFile loads the storage from a JSON file

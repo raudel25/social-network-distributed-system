@@ -109,7 +109,7 @@ func (n *Node) threadFixFingers() {
 func (n *Node) threadFixStorage() {
 	log.Println("Fix storage thread started")
 
-	ticker := time.NewTicker(interval * time.Second)
+	ticker := time.NewTicker(intervalS * time.Second)
 	for {
 		select {
 		case <-n.shutdown:
@@ -124,7 +124,7 @@ func (n *Node) threadFixStorage() {
 func (n *Node) threadDiscoverAndJoin(port string, broadListen string, broadRequest string) {
 	log.Println("Fix storage thread discover and join started")
 
-	ticker := time.NewTicker(interval * time.Second)
+	ticker := time.NewTicker(intervalS * time.Second)
 	for {
 		select {
 		case <-n.shutdown:
