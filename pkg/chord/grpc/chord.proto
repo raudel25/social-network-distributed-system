@@ -18,7 +18,7 @@ service Chord {
   rpc Set(KeyValueRequest) returns (StatusResponse);
   rpc SetPartition(PartitionRequest) returns (StatusResponse);
   rpc ResolveData(PartitionRequest) returns (ResolveDataResponse); 
-  rpc Remove(KeyRequest) returns (StatusResponse);
+  rpc Remove(KeyTimeRequest) returns (StatusResponse);
 }
 
 message IdRequest {
@@ -63,6 +63,12 @@ message ElectionRequest {
 message KeyRequest{
   string key = 1;
   bool rep = 2;
+}
+
+message KeyTimeRequest{
+  string key = 1;
+  int64 time = 2;
+  bool rep = 3;
 }
 
 message KeyValueRequest{

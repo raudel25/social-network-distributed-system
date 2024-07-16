@@ -48,7 +48,7 @@ type ChordClient interface {
 	Set(ctx context.Context, in *KeyValueRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 	SetPartition(ctx context.Context, in *PartitionRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 	ResolveData(ctx context.Context, in *PartitionRequest, opts ...grpc.CallOption) (*ResolveDataResponse, error)
-	Remove(ctx context.Context, in *KeyRequest, opts ...grpc.CallOption) (*StatusResponse, error)
+	Remove(ctx context.Context, in *KeyTimeRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 }
 
 type chordClient struct {
@@ -169,7 +169,7 @@ func (c *chordClient) ResolveData(ctx context.Context, in *PartitionRequest, opt
 	return out, nil
 }
 
-func (c *chordClient) Remove(ctx context.Context, in *KeyRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
+func (c *chordClient) Remove(ctx context.Context, in *KeyTimeRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(StatusResponse)
 	err := c.cc.Invoke(ctx, Chord_Remove_FullMethodName, in, out, cOpts...)
@@ -194,7 +194,7 @@ type ChordServer interface {
 	Set(context.Context, *KeyValueRequest) (*StatusResponse, error)
 	SetPartition(context.Context, *PartitionRequest) (*StatusResponse, error)
 	ResolveData(context.Context, *PartitionRequest) (*ResolveDataResponse, error)
-	Remove(context.Context, *KeyRequest) (*StatusResponse, error)
+	Remove(context.Context, *KeyTimeRequest) (*StatusResponse, error)
 	mustEmbedUnimplementedChordServer()
 }
 
@@ -235,7 +235,7 @@ func (UnimplementedChordServer) SetPartition(context.Context, *PartitionRequest)
 func (UnimplementedChordServer) ResolveData(context.Context, *PartitionRequest) (*ResolveDataResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ResolveData not implemented")
 }
-func (UnimplementedChordServer) Remove(context.Context, *KeyRequest) (*StatusResponse, error) {
+func (UnimplementedChordServer) Remove(context.Context, *KeyTimeRequest) (*StatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Remove not implemented")
 }
 func (UnimplementedChordServer) mustEmbedUnimplementedChordServer() {}
@@ -450,7 +450,7 @@ func _Chord_ResolveData_Handler(srv interface{}, ctx context.Context, dec func(i
 }
 
 func _Chord_Remove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(KeyRequest)
+	in := new(KeyTimeRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -462,7 +462,7 @@ func _Chord_Remove_Handler(srv interface{}, ctx context.Context, dec func(interf
 		FullMethod: Chord_Remove_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChordServer).Remove(ctx, req.(*KeyRequest))
+		return srv.(ChordServer).Remove(ctx, req.(*KeyTimeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

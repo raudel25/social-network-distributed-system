@@ -39,7 +39,7 @@ func (n *Node) setReplicateNode(node *Node, key string, value Data) error {
 	return nil
 }
 
-func (n *Node) removeReplicate(key string) {
+func (n *Node) removeReplicate(key string, time int64) {
 	log.Printf("Remove replicate key %s\n", key)
 
 	n.sucLock.RLock()
@@ -47,14 +47,14 @@ func (n *Node) removeReplicate(key string) {
 	defer n.sucLock.RUnlock()
 
 	for i := 0; i < successors.Len(); i++ {
-		err := n.removeReplicateNode(successors.GetIndex(i), key)
+		err := n.removeReplicateNode(successors.GetIndex(i), key, time)
 		if err != nil {
 			log.Println(err.Error())
 		}
 	}
 }
 
-func (n *Node) removeReplicateNode(node *Node, key string) error {
+func (n *Node) removeReplicateNode(node *Node, key string, time int64) error {
 	log.Printf("Remove replicate key %s in %s\n", key, n.address)
 
 	connection, err := NewGRPConnection(node.address)
@@ -63,7 +63,7 @@ func (n *Node) removeReplicateNode(node *Node, key string) error {
 	}
 	defer connection.close()
 
-	_, err = connection.client.Remove(connection.ctx, &pb.KeyRequest{Key: key, Rep: false})
+	_, err = connection.client.Remove(connection.ctx, &pb.KeyTimeRequest{Key: key, Time: time, Rep: false})
 	if err != nil {
 		return err
 	}
@@ -216,20 +216,15 @@ func (n *Node) newPredecessorStorage() {
 	}
 
 	newResDict := make(map[string]Data)
-	newResRemove := make([]string, 0)
 
 	for k, v := range res.Dict {
 		newResDict[k] = Data{Value: v, Version: res.Version[k]}
 	}
 
-	for k := range res.Dict {
-		newResRemove = append(newResRemove, k)
-	}
-
 	n.dictLock.Lock()
 	defer n.dictLock.Unlock()
 	n.dictionary.SetAll(newResDict)
-	n.dictionary.RemoveAll(newResRemove)
+	n.dictionary.RemoveAll(res.Remove)
 
 }
 
@@ -292,6 +287,10 @@ func (n *Node) fixStorage() {
 			continue
 		}
 
-		n.dictionary.Remove(k)
+		n.timeLock.RLock()
+		time := n.time.timeCounter
+		n.timeLock.RUnlock()
+
+		n.dictionary.Remove(k, time)
 	}
 }

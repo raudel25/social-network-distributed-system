@@ -88,9 +88,9 @@ func (n *Node) SetKey(key string, value string) error {
 	return nil
 }
 
-func (n *Node) Remove(ctx context.Context, req *pb.KeyRequest) (*pb.StatusResponse, error) {
+func (n *Node) Remove(ctx context.Context, req *pb.KeyTimeRequest) (*pb.StatusResponse, error) {
 	n.dictLock.Lock()
-	n.dictionary.Remove(req.Key)
+	n.dictionary.Remove(req.Key, req.Time)
 	defer n.dictLock.Unlock()
 
 	n.sucLock.RLock()
@@ -98,7 +98,7 @@ func (n *Node) Remove(ctx context.Context, req *pb.KeyRequest) (*pb.StatusRespon
 	n.sucLock.RUnlock()
 
 	if req.Rep && !equals(n.id, suc.id) {
-		n.removeReplicate(req.Key)
+		n.removeReplicate(req.Key, req.Time)
 	}
 
 	return &pb.StatusResponse{Ok: true}, nil
@@ -118,7 +118,11 @@ func (n *Node) RemoveKey(key string) error {
 	}
 	defer connection.close()
 
-	_, err = connection.client.Remove(connection.ctx, &pb.KeyRequest{Key: key, Rep: true})
+	n.timeLock.RLock()
+	time := n.time.timeCounter
+	n.timeLock.RUnlock()
+
+	_, err = connection.client.Remove(connection.ctx, &pb.KeyTimeRequest{Key: key, Time: time, Rep: true})
 	if err != nil {
 		return err
 	}
@@ -128,19 +132,14 @@ func (n *Node) RemoveKey(key string) error {
 
 func (n *Node) SetPartition(ctx context.Context, req *pb.PartitionRequest) (*pb.StatusResponse, error) {
 	newDict := make(map[string]Data)
-	removeKeys := make([]string, 0)
 
 	for key, value := range req.Dict {
 		newDict[key] = Data{Value: value, Version: req.Version[key]}
 	}
 
-	for key := range req.Remove {
-		removeKeys = append(removeKeys, key)
-	}
-
 	n.dictLock.Lock()
 	n.dictionary.SetAll(newDict)
-	n.dictionary.RemoveAll(removeKeys)
+	n.dictionary.RemoveAll(req.Remove)
 	n.dictLock.Unlock()
 
 	return &pb.StatusResponse{Ok: true}, nil
@@ -183,7 +182,7 @@ func (n *Node) ResolveData(ctx context.Context, req *pb.PartitionRequest) (*pb.R
 		}
 
 		if ok && v.Version <= time {
-			n.dictionary.Remove(key)
+			n.dictionary.Remove(key, time)
 		}
 	}
 

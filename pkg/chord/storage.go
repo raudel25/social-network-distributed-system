@@ -21,8 +21,8 @@ type Storage interface {
 	GetRemoveAll() (map[string]Data, error)
 	Set(key string, value Data) error
 	SetAll(dict map[string]Data) error
-	Remove(key string) error
-	RemoveAll(dict []string) error
+	Remove(key string, time int64) error
+	RemoveAll(dict map[string]int64) error
 }
 
 type RamStorage struct {
@@ -293,7 +293,7 @@ func (ds *DictStorage) Set(key string, value Data) error {
 }
 
 // Remove deletes a value by key
-func (ds *DictStorage) Remove(key string) error {
+func (ds *DictStorage) Remove(key string, time int64) error {
 	value := ds.store[key]
 	value.Active = false
 	ds.store[key] = value
@@ -333,10 +333,11 @@ func (ds *DictStorage) SetAll(dict map[string]Data) error {
 	return ds.saveToFile()
 }
 
-func (ds *DictStorage) RemoveAll(dict []string) error {
-	for _, key := range dict {
+func (ds *DictStorage) RemoveAll(dict map[string]int64) error {
+	for key, time := range dict {
 		value := ds.store[key]
 		value.Active = false
+		value.Version = time
 		ds.store[key] = value
 	}
 	return ds.saveToFile()
