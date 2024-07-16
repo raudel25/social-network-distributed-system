@@ -74,16 +74,18 @@ func (n *Node) removeReplicateNode(node *Node, key string) error {
 func (n *Node) replicateAllData(node *Node) {
 	log.Printf("Replicate all data in %s\n", node.address)
 
-	n.dictLock.Lock()
+	n.dictLock.RLock()
 	dict, _ := n.dictionary.GetAll()
-	defer n.dictLock.Unlock()
+	remove, _ := n.dictionary.GetRemoveAll()
+	n.dictLock.RUnlock()
+
+	newDict := make(map[string]string)
+	newVersion := make(map[string]int64)
+	newRemove := make(map[string]int64)
 
 	n.predLock.RLock()
 	pred := n.predecessors.GetIndex(0)
 	n.predLock.RUnlock()
-
-	newDict := make(map[string]string)
-	newVersion := make(map[string]int64)
 
 	for k, v := range dict {
 		keyId := n.hashID(k)
@@ -94,6 +96,14 @@ func (n *Node) replicateAllData(node *Node) {
 		}
 	}
 
+	for key, value := range remove {
+		keyId := n.hashID(key)
+
+		if between(keyId, pred.id, n.id) {
+			newRemove[key] = value.Version
+		}
+	}
+
 	connection, err := NewGRPConnection(node.address)
 	if err != nil {
 		log.Println(err.Error())
@@ -101,7 +111,7 @@ func (n *Node) replicateAllData(node *Node) {
 	}
 	defer connection.close()
 
-	connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict, Version: newVersion})
+	connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict, Version: newVersion, Remove: newRemove})
 }
 
 func (n *Node) failPredecessorStorage(predId *big.Int) {
@@ -109,13 +119,12 @@ func (n *Node) failPredecessorStorage(predId *big.Int) {
 
 	n.dictLock.RLock()
 	dict, _ := n.dictionary.GetAll()
+	remove, _ := n.dictionary.GetRemoveAll()
 	n.dictLock.RUnlock()
 
 	newDict := make(map[string]string)
 	newVersion := make(map[string]int64)
-
-	n.dictLock.Lock()
-	defer n.dictLock.Unlock()
+	newRemove := make(map[string]int64)
 
 	for key, value := range dict {
 		keyId := n.hashID(key)
@@ -125,6 +134,15 @@ func (n *Node) failPredecessorStorage(predId *big.Int) {
 
 		newDict[key] = value.Value
 		newVersion[key] = value.Version
+	}
+
+	for key, value := range remove {
+		keyId := n.hashID(key)
+		if between(keyId, predId, n.id) {
+			continue
+		}
+
+		newRemove[key] = value.Version
 	}
 
 	n.sucLock.RLock()
@@ -139,7 +157,7 @@ func (n *Node) failPredecessorStorage(predId *big.Int) {
 		}
 		defer connection.close()
 
-		connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict, Version: newVersion})
+		connection.client.SetPartition(connection.ctx, &pb.PartitionRequest{Dict: newDict, Version: newVersion, Remove: newRemove})
 	}
 }
 
@@ -148,7 +166,12 @@ func (n *Node) newPredecessorStorage() {
 
 	n.dictLock.RLock()
 	dict, _ := n.dictionary.GetAll()
+	remove, _ := n.dictionary.GetRemoveAll()
 	n.dictLock.RUnlock()
+
+	newDict := make(map[string]string)
+	newVersion := make(map[string]int64)
+	newRemove := make(map[string]int64)
 
 	n.predLock.RLock()
 	pred := n.predecessors.GetIndex(0)
@@ -160,9 +183,6 @@ func (n *Node) newPredecessorStorage() {
 	}
 	n.predLock.RUnlock()
 
-	newDict := make(map[string]string)
-	newVersion := make(map[string]int64)
-
 	for key, value := range dict {
 		keyId := n.hashID(key)
 		if !between(keyId, predPred.id, pred.id) {
@@ -173,6 +193,15 @@ func (n *Node) newPredecessorStorage() {
 		newVersion[key] = value.Version
 	}
 
+	for key, value := range remove {
+		keyId := n.hashID(key)
+		if !between(keyId, predPred.id, pred.id) {
+			continue
+		}
+
+		newRemove[key] = value.Version
+	}
+
 	connection, err := NewGRPConnection(pred.address)
 	if err != nil {
 		log.Println(err.Error())
@@ -180,21 +209,27 @@ func (n *Node) newPredecessorStorage() {
 	}
 	defer connection.close()
 
-	res, err := connection.client.ResolveData(connection.ctx, &pb.PartitionRequest{Dict: newDict, Version: newVersion})
+	res, err := connection.client.ResolveData(connection.ctx, &pb.PartitionRequest{Dict: newDict, Version: newVersion, Remove: newRemove})
 	if err != nil {
 		log.Println(err.Error())
 		return
 	}
 
 	newResDict := make(map[string]Data)
+	newResRemove := make([]string, 0)
 
 	for k, v := range res.Dict {
 		newResDict[k] = Data{Value: v, Version: res.Version[k]}
 	}
 
+	for k := range res.Dict {
+		newResRemove = append(newResRemove, k)
+	}
+
 	n.dictLock.Lock()
 	defer n.dictLock.Unlock()
 	n.dictionary.SetAll(newResDict)
+	n.dictionary.RemoveAll(newResRemove)
 
 }
 

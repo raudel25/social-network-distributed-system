@@ -75,11 +75,13 @@ message KeyValueRequest{
 message PartitionRequest{
   map<string, string> dict = 1;  
   map<string, int64> version = 2;
+  map<string, int64> remove = 3;
 }
 
 message ResolveDataResponse {
   map<string, string> dict = 1;  
   map<string, int64> version = 2;
+  map<string, int64> remove = 3;
 }
 
 message TimeRequest {
